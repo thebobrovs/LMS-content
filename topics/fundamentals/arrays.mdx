@@ -1,0 +1,52 @@
+---
+title: Arrays
+summary: Contiguous, index-addressable storage — the foundation for many data structures.
+tags: [data-structures, fundamentals]
+difficulty: beginner
+estimatedMinutes: 15
+prerequisites: []
+relatedTo: [data-structures/hash-tables]
+videos: []
+flashcards:
+  - front: What is the time complexity of accessing an array element by index?
+    back: O(1) — the address is computed directly from the base and the index.
+quiz:
+  - question: Why is appending to the end of a dynamic array amortized O(1)?
+    choices:
+      - Because resizing doubles capacity, so reallocations are rare
+      - Because arrays never need to resize
+      - Because every append reallocates the whole array
+    answer: 0
+    explanation: Doubling capacity spreads the cost of occasional O(n) reallocations across many O(1) appends.
+status: published
+---
+
+## What is an array?
+
+An **array** stores elements in a single contiguous block of memory. Because the
+elements sit next to each other, the position of element `i` can be computed
+directly — which is why indexed access is constant time.
+
+<Figure
+  src="/media/array-memory.svg"
+  alt="Five array cells laid out contiguously in memory, each labelled with its index [0]–[4] and its address 0x00–0x10, with the formula addr(arr[i]) = base + i × element_size below."
+  caption="An array's elements sit in one contiguous block, so element i's address is pure arithmetic — base + i × element_size."
+/>
+
+<Callout type="tip">
+Contiguity is the array's superpower (fast indexed access and cache-friendly
+iteration) and its limitation (inserting in the middle means shifting elements).
+</Callout>
+
+## Indexed access
+
+Reading `arr[i]` doesn't search — it computes `base_address + i * element_size`
+and reads that location. That's why access is **O(1)** regardless of array size.
+
+<Flashcard
+  front="What makes array indexed access O(1)?"
+  back="The element address is computed arithmetically from the base address and index — no scanning required."
+/>
+
+Arrays are also the backing store for many other structures — including
+[hash tables](/topics/data-structures/hash-tables).

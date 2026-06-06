@@ -1,0 +1,55 @@
+---
+title: Hash Tables
+summary: Key–value storage with O(1) average lookup via hashing.
+tags: [data-structures, hashing, performance]
+difficulty: intermediate
+estimatedMinutes: 25
+prerequisites: [fundamentals/arrays]
+relatedTo: [systems/caching]
+videos:
+  - youtubeId: dQw4w9WgXcQ
+    title: Hashing explained
+    start: 0
+flashcards:
+  - front: What is the average-case lookup time of a hash table?
+    back: O(1), assuming a good hash function and a low load factor.
+  - front: What causes a hash collision?
+    back: Two distinct keys hashing to the same bucket index.
+quiz:
+  - question: What typically degrades hash-table performance?
+    choices:
+      - A high load factor with poor collision handling
+      - Using integer keys
+      - Having too few keys
+    answer: 0
+    explanation: As the load factor rises, collisions increase and operations approach O(n).
+status: published
+---
+
+## How hashing works
+
+A **hash function** maps a key to a bucket index in an underlying
+[array](/topics/fundamentals/arrays). To store a key–value pair, we hash the key
+and place the value in that bucket. To look it up, we hash again and read the
+same bucket — so lookups don't scan, they jump.
+
+<Simulation id="hash-collision" height={420} />
+
+## Collisions
+
+When two different keys hash to the **same** bucket, we have a **collision**.
+The simulation above lets you trigger one by inserting keys that hash to the same
+slot. Real hash tables resolve collisions with strategies like{" "}
+<Term>chaining</Term> or <Term>open addressing</Term>.
+
+<Callout type="warning">
+As the **load factor** (entries ÷ buckets) rises past ~0.7, collisions become
+frequent. Tables resize and rehash to keep operations near O(1).
+</Callout>
+
+<YouTube id="dQw4w9WgXcQ" title="Hashing explained" />
+
+<Flashcard
+  front="Why can hash-table operations degrade toward O(n)?"
+  back="With a high load factor and many collisions, buckets hold long chains, so operations approach a linear scan."
+/>

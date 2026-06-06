@@ -1,0 +1,53 @@
+---
+title: Mixture of Experts (MoE)
+summary: How modern LLMs scale to hundreds of billions of parameters while only running a few per token — by routing each token to a small set of specialized experts.
+tags: [ml-systems, llm, architecture]
+difficulty: advanced
+estimatedMinutes: 15
+level: 300
+prerequisites: []
+relatedTo: [ml-systems/tpu-v5p-topology]
+videos: []
+flashcards:
+  - front: In a Mixture of Experts (MoE) layer, how many experts run per token?
+    back: Only the top-k (typically 1 or 2) chosen by the gating network — not all of them. That's sparse activation.
+  - front: Why does MoE scale total parameters without scaling per-token cost?
+    back: The model can hold hundreds of billions of parameters, but only the few routed experts run for any given token, so compute per token stays small.
+quiz:
+  - question: What does the gating network decide?
+    choices:
+      - Which experts process each token
+      - The model's learning rate
+      - The training batch size
+    answer: 0
+    explanation: The gating network reads the token and outputs routing scores; the top-k experts are activated for it.
+  - question: Moving from Top-2 to Top-1 routing trades off…
+    choices:
+      - Compute cost against capacity
+      - Accuracy against color
+      - Tokens against epochs
+    answer: 0
+    explanation: Fewer active experts means less compute and lower latency, but less per-token capacity.
+status: published
+---
+
+## The idea
+
+A **dense** model runs every parameter for every token. A **Mixture of Experts**
+model instead keeps many specialized sub-networks ("experts") and a small
+**gating network** that routes each token to just the top-k of them. You get the
+capability of a huge model at the cost of a small one — **sparse activation**.
+
+The simulation below is a working MoE "factory": inject tokens, switch between
+Top-1, Top-2, and Dense routing, and watch how many experts wake up, how compute
+overhead and latency change, and how the gating weights are computed. Complete
+the three quests to see the full trade-off.
+
+<Simulation id="moe-factory" height={1200} />
+
+<Callout type="note">
+Notice the trade-off as you switch modes: Top-1 is cheapest (one expert), Top-2
+balances cost and capability (the common default), and Dense runs everything —
+maximum capability, maximum cost. Sparsity is what makes trillion-parameter
+models practical to serve.
+</Callout>

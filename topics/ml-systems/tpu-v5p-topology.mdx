@@ -1,0 +1,151 @@
+---
+title: TPU v5p Topology
+summary: How TPU v5p chips wire into a 3D torus, scale from a chip to an 8,960-chip pod, and why the shape you pick changes training throughput.
+tags: [ml-systems, hardware, parallelism]
+difficulty: advanced
+estimatedMinutes: 18
+level: 300
+prerequisites: []
+relatedTo: []
+videos: []
+flashcards:
+  - front: ICI (Inter-Chip Interconnect)
+    back: The high-bandwidth links that directly wire TPU chips together — six per v5p chip (±X, ±Y, ±Z), ~4,800 Gbps/chip — forming the 3D torus inside a pod.
+  - front: Data parallelism (DP)
+    back: Each device holds a full copy of the model; gradients are all-reduced across devices every step. All-reduce maps cleanly onto a torus ring.
+  - front: Tensor parallelism (TP)
+    back: A single matmul is split across a group of devices. It is bandwidth-hungry, so it's kept on the tightest, highest-bandwidth ICI axis.
+  - front: Pipeline parallelism (PP)
+    back: The model's layers are split into stages on different devices; micro-batches stream through so every stage stays busy.
+quiz:
+  - question: How many ICI links does each TPU v5p chip have?
+    choices:
+      - "4"
+      - "6"
+      - "8"
+    answer: 1
+    explanation: Six links — one for each direction ±X, ±Y, ±Z — which is what makes the interconnect a 3D torus.
+  - question: What is the smallest slice with full 3D-torus wrap-around on all three axes?
+    choices:
+      - A single chip
+      - A 4×4×4 cube of 64 chips
+      - A full 8,960-chip pod
+    answer: 1
+    explanation: The 4×4×4 cube (64 chips) is the smallest building block that closes the torus in X, Y, and Z. Larger slices stack cubes.
+  - question: In a Multislice job, which network carries traffic between slices?
+    choices:
+      - ICI
+      - The Data Center Network (DCN)
+      - PCIe
+    answer: 1
+    explanation: ICI binds chips inside a pod. Across pods/slices, traffic falls back to the DCN, which is far slower — so you keep tight communication inside one slice.
+  - question: Why does the shape of a slice (e.g. 8×8×8 vs 4×4×32) matter?
+    choices:
+      - It changes each chip's clock speed
+      - It maps torus axes onto parallelism strategies (DP/TP/PP)
+      - It selects the host operating system
+    answer: 1
+    explanation: A long axis suits ring all-reduce (DP); a tightly-wrapped axis suits bandwidth-hungry tensor parallelism. Shape is a real performance lever.
+status: published
+---
+
+## The one-line summary
+
+A TPU v5p pod is **8,960 chips wired into a 3D torus**. Each chip talks to six
+neighbours over **ICI** (Inter-Chip Interconnect); the grid wraps around at its
+edges so there are no "ends," which keeps any two chips a short hop apart. You
+rent a **slice** of that torus and choose its shape to match how you split your
+model.
+
+## The hierarchy: chip → host → cube → slice → pod → Multislice
+
+Scaling on a TPU isn't one jump from "a chip" to "a supercomputer" — it's a
+ladder, and each rung is bound by a different tier of network. Step through it:
+
+<Simulation id="scale-hierarchy" height={460} />
+
+The thing to notice: every rung up to a **pod** is still one ICI torus. Only
+<Term>Multislice</Term> crosses pods, and that hop runs over the slower{" "}
+<Term id="dcn">DCN</Term> — which is why where a boundary falls matters so much
+for performance.
+
+## The 3D torus, up close
+
+Inside a slice, each chip has six <Term id="ici">ICI</Term> links — `±X`, `±Y`,
+`±Z`. At the edges the
+links **wrap around** to the opposite face, turning a 4×4×4 grid into a torus
+with no boundary. That wrap is what keeps the network *diameter* (worst-case hop
+count) low even as the slice grows.
+
+Click a chip to light up its six neighbours, and toggle the wrap-around links to
+watch the edge chips close the loop:
+
+<Simulation id="torus-3d" height={560} />
+
+<Callout type="note">
+Low diameter is the whole point. On a ring of N chips the farthest message
+travels N/2 hops; wrap a grid into a torus in 3D and the worst case grows like
+the **cube root** of the chip count instead. That's why collective operations
+(all-reduce, all-gather) stay fast at pod scale.
+</Callout>
+
+## Slice shape is a real lever
+
+Two slices with the *same chip count* can train at very different speeds. A
+`4×4×32` slice has one long axis — great for a **ring all-reduce** across a
+data-parallel group. An `8×8×8` slice is balanced — better when you need high
+bandwidth in every direction for **tensor parallelism**. Picking the shape is
+part of designing the run, not an afterthought.
+
+## Why this matters for ML
+
+The three ways to split a model map onto the torus axes:
+
+- <Term id="data parallelism">Data parallelism (DP)</Term> replicates the model
+  and all-reduces gradients — it rides a torus ring happily, so it can stretch
+  across a long axis.
+- <Term id="tensor parallelism">Tensor parallelism (TP)</Term> splits a single
+  matmul and is bandwidth-hungry, so it wants the tightest, highest-bandwidth ICI
+  axis.
+- <Term id="pipeline parallelism">Pipeline parallelism (PP)</Term> splits layers
+  into stages; its traffic is smaller and more tolerant, so it can span looser
+  links — even across a Multislice DCN boundary in large runs.
+
+Get the mapping right and the interconnect disappears into the background. Get it
+wrong — e.g. tensor-parallel traffic forced across the DCN — and the chips sit
+idle waiting on the network.
+
+## Inspect it in code
+
+On a real `v5p-64` slice, JAX reports all 64 chips and their coordinates in the
+ICI mesh — the same 4×4×4 torus the simulation draws:
+
+```python title="inspect_topology.py"
+import jax
+
+devices = jax.devices()
+print(len(devices), "TPU chips")          # 64 on a v5p-64 slice
+
+# Each device knows its (x, y, z) coordinate in the 3D-torus mesh.
+for d in sorted(devices, key=lambda d: d.coords)[:4]:
+    print(d.id, d.coords, "core", d.core_on_chip)
+```
+
+The `coords` are exactly the axes you clicked through above — wrap-around and all.
+
+## Put it together
+
+<Steps>
+<Step title="Trace one chip's six ICI neighbours">
+In the 3D-torus simulation above, click a chip and confirm it has six neighbours
+— including the wrap-around links that close the torus at the edges.
+</Step>
+<Step title="Walk the hierarchy from chip to Multislice">
+Step through the scale hierarchy until you reach Multislice, and note exactly
+where ICI ends and the slower DCN takes over.
+</Step>
+<Step title="Choose a slice shape for a data-parallel run">
+Decide which axis you'd map a ring all-reduce onto, and why a long axis
+(e.g. 4×4×32) suits data parallelism better than a balanced 8×8×8.
+</Step>
+</Steps>

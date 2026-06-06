@@ -1,0 +1,51 @@
+---
+title: Caching
+summary: Store the results of expensive work so repeat requests are fast.
+tags: [systems, performance]
+difficulty: intermediate
+estimatedMinutes: 20
+prerequisites: [data-structures/hash-tables]
+relatedTo: []
+videos: []
+flashcards:
+  - front: What is a cache hit?
+    back: A request whose result is already stored in the cache, so it's served without redoing the work.
+quiz:
+  - question: What does a low cache hit-rate usually indicate?
+    choices:
+      - The cache is too small or the eviction policy is poorly matched to the workload
+      - The cache is too large
+      - Caching never helps
+    answer: 0
+    explanation: If the working set doesn't fit, or eviction discards soon-to-be-reused entries, hits drop and the cache adds little value.
+status: published
+---
+
+## Why cache?
+
+A **cache** stores the result of expensive work (a database query, a computation,
+a remote call) so that repeat requests can be served quickly. Caches are
+frequently backed by a [hash table](/topics/data-structures/hash-tables) for
+O(1) average lookup of cached entries by key.
+
+<Callout type="note">
+A cache is a bet that the near future looks like the recent past. When it does,
+hit-rates are high and latency drops dramatically.
+</Callout>
+
+## Hits, misses, and eviction
+
+A **hit** serves a stored result; a **miss** must do the work and (usually) store
+it. Because caches are bounded, an <Term>eviction policy</Term> (e.g.{" "}
+<Term>LRU</Term>) decides what to drop when full.
+
+The simulation below is a small **LRU (least-recently-used)** cache. Access keys
+and watch how each access promotes a key to most-recently-used; once you access
+more distinct keys than the capacity, the least-recently-used key is evicted.
+
+<Simulation id="lru-cache" props={{ capacity: 3 }} />
+
+<Flashcard
+  front="What trade-off does cache size control?"
+  back="Larger caches raise hit-rate (more of the working set fits) but cost more memory; the goal is the smallest cache that captures the working set."
+/>

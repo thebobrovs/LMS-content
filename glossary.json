@@ -1,0 +1,63 @@
+{
+  "array": {
+    "definition": "A contiguous, index-addressable block of memory. Element i's address is computed arithmetically from the base, so access is O(1)."
+  },
+  "hash function": {
+    "definition": "Maps a key to a bucket index, so storing and looking up a value is a direct jump, not a scan."
+  },
+  "bucket": {
+    "definition": "One slot of a hash table's backing array, holding the entry (or entries) for keys that hash to it."
+  },
+  "collision": {
+    "definition": "When two different keys hash to the same bucket. Resolved with chaining or open addressing."
+  },
+  "load factor": {
+    "definition": "A hash table's entries ÷ buckets. Past ~0.7, collisions get frequent and the table resizes and rehashes."
+  },
+  "chaining": {
+    "definition": "Each bucket holds a small list; colliding keys are appended to it, so a lookup scans just that short list."
+  },
+  "open addressing": {
+    "definition": "Instead of a per-bucket list, probe forward to the next free slot on a collision.",
+    "href": "https://en.wikipedia.org/wiki/Open_addressing",
+    "linkLabel": "Open addressing (Wikipedia)"
+  },
+  "cache": {
+    "definition": "A store of the results of expensive work, so repeat requests are served quickly instead of recomputed."
+  },
+  "cache hit": {
+    "definition": "A request whose result is already in the cache, served without redoing the work (a miss must do the work)."
+  },
+  "eviction policy": {
+    "definition": "The rule a bounded cache uses to decide which entry to drop when full — e.g. LRU."
+  },
+  "lru": {
+    "definition": "Least-Recently-Used — an eviction policy that drops the entry left untouched for the longest."
+  },
+  "ici": {
+    "definition": "Inter-Chip Interconnect — the high-bandwidth links wiring TPU chips into the 3D torus (six per v5p chip, ~4,800 Gbps).",
+    "href": "https://docs.cloud.google.com/tpu/docs/v5p",
+    "linkLabel": "TPU v5p docs"
+  },
+  "dcn": {
+    "definition": "Data Center Network — the (slower than ICI) network that carries traffic between TPU slices/pods in a Multislice job."
+  },
+  "3d torus": {
+    "definition": "A 3D grid of chips whose edges wrap around, so there are no ends and any two chips stay a short hop apart."
+  },
+  "slice": {
+    "definition": "A contiguous sub-volume of a TPU pod, wired into its own 3D torus; you pick its shape to match your parallelism."
+  },
+  "multislice": {
+    "definition": "Joining multiple slices/pods over the DCN for jobs bigger than one pod — cross-slice traffic is far slower than ICI."
+  },
+  "data parallelism": {
+    "definition": "Each device holds a full copy of the model; gradients are all-reduced across devices every step. Rides a torus ring well. (DP)"
+  },
+  "tensor parallelism": {
+    "definition": "A single matmul is split across a group of devices. Bandwidth-hungry, so it's kept on the tightest, highest-bandwidth ICI axis. (TP)"
+  },
+  "pipeline parallelism": {
+    "definition": "The model's layers are split into stages on different devices; micro-batches stream through so every stage stays busy. (PP)"
+  }
+}
