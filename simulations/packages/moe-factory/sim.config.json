@@ -1,0 +1,11 @@
+{
+  "id": "moe-factory",
+  "title": "Mixture of Experts (MoE) Factory",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "quest-1", "hint": "Process 5 tokens using standard Top-2 MoE routing." },
+    { "id": "quest-2", "hint": "Switch to Top-1 gating to drop to ~25% compute." },
+    { "id": "quest-3", "hint": "Switch to Dense mode to see latency spike when all experts run." }
+  ]
+}

@@ -32,6 +32,16 @@ function walk(dir) {
   });
 }
 
+// Simulation ids available in this repo (one dir per sim under simulations/packages).
+const SIMS_DIR = path.join(ROOT, "simulations", "packages");
+const simIds = new Set(
+  fs.existsSync(SIMS_DIR)
+    ? fs.readdirSync(SIMS_DIR, { withFileTypes: true })
+        .filter((e) => e.isDirectory() && fs.existsSync(path.join(SIMS_DIR, e.name, "sim.config.json")))
+        .map((e) => e.name)
+    : [],
+);
+
 // Collect topic ids from a topics dir, rooted for id derivation.
 function topicsFrom(dir) {
   return walk(dir).map((file) => {
@@ -77,6 +87,9 @@ for (const t of topics) {
     const idAttr = m[1].match(/\bid=["']([^"']+)["']/);
     const key = (idAttr ? idAttr[1] : m[2]).toLowerCase().trim();
     if (!glossary[key]) errors.push(`${id}: glossary term "${key}" is not defined`);
+  }
+  for (const m of content.matchAll(/<Simulation[^>]*\bid=(["'])(.*?)\1/g)) {
+    if (!simIds.has(m[2])) errors.push(`${id}: simulation "${m[2]}" has no simulations/packages/${m[2]}`);
   }
 }
 

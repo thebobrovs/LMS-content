@@ -20,8 +20,12 @@ simulations/packages/<id>/
   style.css           # theme-aware styles (mirror the design tokens)
 ```
 
-`npm run sims` copies each package + the shared SDK into `public/sims/<id>/` and
-regenerates `content/simulations/registry.json`. A lesson then embeds it:
+Simulation packages live in **this content repo** (`simulations/packages/`); the
+host↔sim **SDK** stays in the app repo (the contract). At build, the app fetches
+these packages and `npm run sims` copies each + the SDK into `public/sims/<id>/`,
+regenerating the registry. Locally here, validate your package with
+`node pipeline/validate.mjs` (it checks every `<Simulation id>` has a package). A
+lesson embeds it:
 
 ```mdx
 <Simulation id="<id>" height={400} props={{ /* optional */ }} />

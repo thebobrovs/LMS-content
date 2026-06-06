@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSlice AI: Mixture of Experts (MoE) Factory</title>
+    <!-- Tailwind CSS (Play CDN — a classic script, so it loads inside the sandboxed iframe) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MathJax for rendering beautiful LaTeX math -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#0B0F19',
+                            card: '#151D30',
+                            border: '#1F2E4D',
+                            accent: '#3B82F6',
+                            highlight: '#10B981',
+                            warning: '#EF4444',
+                            gold: '#F59E0B'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-blue': '0 0 15px rgba(59, 130, 246, 0.4)',
+                        'neon-green': '0 0 15px rgba(16, 185, 129, 0.4)',
+                        'neon-red': '0 0 15px rgba(239, 68, 68, 0.4)',
+                        'neon-gold': '0 0 15px rgba(245, 158, 11, 0.4)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0B0F19; }
+        ::-webkit-scrollbar-thumb { background: #1F2E4D; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+        }
+        @keyframes conveyor-slide {
+            0% { background-position: 0 0; }
+            100% { background-position: 40px 0; }
+        }
+        .conveyor-animation {
+            background-image: repeating-linear-gradient(90deg, #151D30, #151D30 20px, #1F2E4D 20px, #1F2E4D 40px);
+            background-size: 40px 100%;
+            animation: conveyor-slide 2s linear infinite;
+        }
+        .conveyor-animation.paused { animation-play-state: paused; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .001ms !important; }
+        }
+    </style>
+</head>
+<body class="bg-brand-bg text-slate-100 font-sans min-h-screen flex flex-col selection:bg-brand-accent selection:text-white">
+
+    <header class="border-b border-brand-border bg-brand-bg/85 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-brand-accent/10 border border-brand-accent/30 rounded-lg">
+                <svg class="w-8 h-8 text-brand-accent animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-wide text-white">DEEPSLICE AI</h1>
+                <p class="text-xs text-slate-400">Mixture of Experts (MoE) Interactive Simulator</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4 bg-brand-card/60 p-1.5 rounded-xl border border-brand-border">
+            <div class="flex items-center gap-2 px-3 border-r border-brand-border/60">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-brand-highlight animate-ping"></span>
+                <span class="text-xs font-semibold text-slate-300">SIMULATION: LIVE</span>
+            </div>
+            <div class="flex items-center gap-3 px-1">
+                <button id="btn-toggle-play" class="p-2 text-slate-300 hover:text-white hover:bg-brand-border rounded-lg transition-all" title="Play/Pause">
+                    <svg id="icon-pause" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg id="icon-play" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
+                <button id="btn-reset-sim" class="p-2 text-slate-300 hover:text-white hover:bg-brand-border rounded-lg transition-all" title="Reset Factory Stats">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 12H16M4 20v-5h.581m0 0a8.003 8.003 0 0015.357-2H5"></path></svg>
+                </button>
+            </div>
+            <div class="flex items-center gap-2 px-2 border-l border-brand-border/60">
+                <span class="text-xs text-slate-400">Simulation Speed:</span>
+                <input id="slider-sim-speed" type="range" min="0.5" max="2" step="0.1" value="1" class="w-20 accent-brand-accent bg-brand-bg rounded-lg cursor-pointer h-1.5">
+                <span id="label-sim-speed" class="text-xs font-mono text-brand-accent min-w-[28px] text-right">1.0x</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <section class="lg:col-span-4 flex flex-col gap-6">
+
+            <div class="bg-brand-card p-5 rounded-2xl border border-brand-border shadow-lg flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-md font-bold tracking-wide text-white uppercase">Control Center</h2>
+                    <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded bg-brand-accent/20 text-brand-accent border border-brand-accent/30">Input Layer</span>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs text-slate-300 font-semibold flex justify-between">
+                        <span>Gating Routing Logic:</span>
+                        <span id="active-routing-logic" class="text-brand-accent font-bold">Top-2 Routing</span>
+                    </label>
+                    <div class="grid grid-cols-3 gap-2 bg-brand-bg p-1 rounded-xl border border-brand-border">
+                        <button id="btn-route-top1" class="py-2 px-1 text-xs rounded-lg transition-all font-semibold hover:text-white text-slate-400">Top-1 FFN</button>
+                        <button id="btn-route-top2" class="py-2 px-1 text-xs rounded-lg transition-all font-semibold bg-brand-accent text-white shadow-neon-blue">Top-2 MoE</button>
+                        <button id="btn-route-dense" class="py-2 px-1 text-xs rounded-lg transition-all font-semibold hover:text-white text-slate-400">Dense (All)</button>
+                    </div>
+                    <p id="routing-help-text" class="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                        Top-2 MoE dynamically routes tokens to the 2 experts with highest weights. This provides balanced capacity with sparse computation.
+                    </p>
+                </div>
+
+                <hr class="border-brand-border/60">
+
+                <div class="flex flex-col gap-2">
+                    <span class="text-xs text-slate-300 font-semibold">Inject Custom Tokens (Pizza Orders):</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="spawn-margherita" class="py-2.5 px-3 bg-brand-bg border border-brand-border hover:border-brand-accent text-left text-xs rounded-xl flex flex-col gap-1 transition-all group">
+                            <span class="font-bold text-white group-hover:text-brand-accent flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 rounded-full bg-brand-highlight shadow-neon-green"></span>Margherita Token</span>
+                            <span class="text-[10px] text-slate-400">Requires: Sauce, Cheese</span>
+                        </button>
+                        <button id="spawn-veggie" class="py-2.5 px-3 bg-brand-bg border border-brand-border hover:border-brand-accent text-left text-xs rounded-xl flex flex-col gap-1 transition-all group">
+                            <span class="font-bold text-white group-hover:text-brand-accent flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 rounded-full bg-brand-gold shadow-neon-gold"></span>Veggie Supreme</span>
+                            <span class="text-[10px] text-slate-400">Requires: Dough, Veggies</span>
+                        </button>
+                        <button id="spawn-stuffed" class="py-2.5 px-3 bg-brand-bg border border-brand-border hover:border-brand-accent text-left text-xs rounded-xl flex flex-col gap-1 transition-all group">
+                            <span class="font-bold text-white group-hover:text-brand-accent flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-400 shadow-neon-blue"></span>Double Cheese Token</span>
+                            <span class="text-[10px] text-slate-400">Requires: Dough, Cheese</span>
+                        </button>
+                        <button id="spawn-marinara" class="py-2.5 px-3 bg-brand-bg border border-brand-border hover:border-brand-accent text-left text-xs rounded-xl flex flex-col gap-1 transition-all group">
+                            <span class="font-bold text-white group-hover:text-brand-accent flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 rounded-full bg-brand-warning shadow-neon-red"></span>Marinara Token</span>
+                            <span class="text-[10px] text-slate-400">Requires: Dough, Sauce</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-brand-bg rounded-xl border border-brand-border/60">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-semibold text-slate-300">Auto-Generate Tokens</span>
+                        <span class="text-[10px] text-slate-400">Spawns variable prompt tokens</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input id="toggle-auto-spawn" type="checkbox" checked class="sr-only peer">
+                        <div class="w-11 h-6 bg-brand-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-accent"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="bg-brand-card p-5 rounded-2xl border border-brand-border shadow-lg flex flex-col gap-4">
+                <h2 class="text-md font-bold tracking-wide text-white uppercase flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-highlight" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Telemetry &amp; Statistics
+                </h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-brand-bg p-3 rounded-xl border border-brand-border/60 flex flex-col">
+                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Active Experts</span>
+                        <span id="metric-active-experts" class="text-xl font-mono font-bold text-brand-accent">2 / 4 (50%)</span>
+                    </div>
+                    <div class="bg-brand-bg p-3 rounded-xl border border-brand-border/60 flex flex-col">
+                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Compute Saved</span>
+                        <span id="metric-compute-saved" class="text-xl font-mono font-bold text-brand-highlight">50.0%</span>
+                    </div>
+                    <div class="bg-brand-bg p-3 rounded-xl border border-brand-border/60 flex flex-col">
+                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Inference Latency</span>
+                        <span id="metric-latency" class="text-xl font-mono font-bold text-brand-accent">120 ms</span>
+                    </div>
+                    <div class="bg-brand-bg p-3 rounded-xl border border-brand-border/60 flex flex-col">
+                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Pizzas Processed</span>
+                        <span id="metric-throughput" class="text-xl font-mono font-bold text-white">0</span>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2 mt-2">
+                    <span class="text-xs font-semibold text-slate-300">Relative Compute Overhead:</span>
+                    <div class="w-full bg-brand-bg rounded-full h-3.5 overflow-hidden p-[1px] border border-brand-border">
+                        <div id="compute-overhead-bar" class="bg-brand-accent h-full rounded-full transition-all duration-300 shadow-neon-blue" style="width: 50%;"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] font-mono text-slate-400">
+                        <span>0% (Empty FFN)</span>
+                        <span>100% (Dense Model)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-brand-card p-5 rounded-2xl border border-brand-border shadow-lg flex flex-col gap-4">
+                <h2 class="text-md font-bold tracking-wide text-white uppercase flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    Learning Quests
+                </h2>
+                <div class="flex flex-col gap-3">
+                    <div id="quest-1" class="flex gap-3 p-3 bg-brand-bg rounded-xl border border-brand-border/60 transition-all">
+                        <div class="mt-0.5"><span id="quest-1-check" class="flex items-center justify-center w-5 h-5 rounded-full border border-slate-500 text-xs text-transparent">✓</span></div>
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-white">Quest 1: Traditional Sparsity</span>
+                            <span class="text-[10px] text-slate-400">Process 5 tokens using standard Top-2 MoE routing logic.</span>
+                        </div>
+                    </div>
+                    <div id="quest-2" class="flex gap-3 p-3 bg-brand-bg rounded-xl border border-brand-border/60 transition-all">
+                        <div class="mt-0.5"><span id="quest-2-check" class="flex items-center justify-center w-5 h-5 rounded-full border border-slate-500 text-xs text-transparent">✓</span></div>
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-white">Quest 2: Extreme Efficiency</span>
+                            <span class="text-[10px] text-slate-400">Switch to Top-1 gating to drop active experts to exactly 25% compute usage.</span>
+                        </div>
+                    </div>
+                    <div id="quest-3" class="flex gap-3 p-3 bg-brand-bg rounded-xl border border-brand-border/60 transition-all">
+                        <div class="mt-0.5"><span id="quest-3-check" class="flex items-center justify-center w-5 h-5 rounded-full border border-slate-500 text-xs text-transparent">✓</span></div>
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-white">Quest 3: Benchmark Dense Capacity</span>
+                            <span class="text-[10px] text-slate-400">Switch to Dense mode to see why latency spikes when all experts run.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-8 flex flex-col gap-6">
+            <div class="bg-brand-card rounded-2xl border border-brand-border shadow-lg overflow-hidden flex flex-col relative min-h-[500px]">
+                <div class="bg-brand-card/90 px-5 py-3 border-b border-brand-border flex items-center justify-between z-10 backdrop-blur-sm">
+                    <span class="text-xs font-bold text-slate-300 tracking-wide uppercase flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-brand-accent animate-pulse shadow-neon-blue"></span>Mixture of Experts Sandbox Canvas</span>
+                    <div class="flex gap-2"><span class="px-2 py-0.5 text-[10px] rounded bg-brand-bg border border-brand-border font-mono text-slate-400">Viewport: FFN Assembly Line</span></div>
+                </div>
+                <div class="relative flex-1 bg-[#090d16] flex flex-col justify-between overflow-hidden p-6 gap-8 select-none">
+                    <svg id="canvas-svg-conduits" class="absolute inset-0 w-full h-full pointer-events-none z-0">
+                        <path id="conduit-dough" class="stroke-slate-700/60 transition-colors" stroke-width="4" stroke-dasharray="8 6" fill="none" d="" />
+                        <path id="conduit-sauce" class="stroke-slate-700/60 transition-colors" stroke-width="4" stroke-dasharray="8 6" fill="none" d="" />
+                        <path id="conduit-cheese" class="stroke-slate-700/60 transition-colors" stroke-width="4" stroke-dasharray="8 6" fill="none" d="" />
+                        <path id="conduit-veggie" class="stroke-slate-700/60 transition-colors" stroke-width="4" stroke-dasharray="8 6" fill="none" d="" />
+                        <path id="conduit-dough-out" class="stroke-slate-700/30 fill-none" stroke-width="2" d="" />
+                        <path id="conduit-sauce-out" class="stroke-slate-700/30 fill-none" stroke-width="2" d="" />
+                        <path id="conduit-cheese-out" class="stroke-slate-700/30 fill-none" stroke-width="2" d="" />
+                        <path id="conduit-veggie-out" class="stroke-slate-700/30 fill-none" stroke-width="2" d="" />
+                    </svg>
+
+                    <div class="flex justify-between items-center z-10 w-full">
+                        <div id="node-intake" class="w-1/3 bg-brand-card p-4 rounded-xl border border-brand-border/80 flex flex-col gap-2 relative">
+                            <div class="text-[10px] text-slate-400 uppercase font-mono tracking-wider">Queue: Buffer Stream</div>
+                            <div class="h-10 w-full bg-[#080C14] rounded border border-brand-border/50 relative flex items-center justify-center p-1.5 overflow-hidden">
+                                <div id="intake-belt" class="absolute inset-0 conveyor-animation"></div>
+                                <div id="token-on-belt" class="absolute px-2.5 py-1 bg-brand-accent/20 border border-brand-accent text-brand-accent text-[10px] font-bold rounded-lg transition-all duration-300 flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-brand-accent shadow-neon-blue"></span><span id="belt-token-name">Token</span></div>
+                            </div>
+                            <span class="text-xs text-center font-bold text-slate-300">Input Tokens</span>
+                        </div>
+                        <div class="flex-1 flex justify-center items-center h-full relative">
+                            <div class="w-full h-1 bg-gradient-to-r from-brand-border to-brand-accent/40 relative"><div class="absolute -top-1.5 right-1/2 w-4 h-4 bg-brand-accent/20 border border-brand-accent rounded-full animate-ping"></div></div>
+                        </div>
+                        <div id="node-router" class="w-1/3 bg-brand-card p-4 rounded-xl border border-brand-accent/60 shadow-neon-blue flex flex-col gap-2 relative">
+                            <div class="flex justify-between items-center"><span class="text-[10px] text-brand-accent font-bold uppercase font-mono">Gating Gate</span><span class="px-1.5 py-0.5 text-[9px] bg-brand-accent/20 border border-brand-accent/30 text-brand-accent rounded font-mono">Softmax()</span></div>
+                            <div class="flex items-center gap-3 bg-[#080C14] p-2 rounded border border-brand-border/60">
+                                <svg class="w-8 h-8 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                                <div class="flex-1 flex flex-col"><span class="text-[11px] font-bold text-slate-200">Sparse Router</span><span id="router-state-desc" class="text-[9px] text-slate-400">Directing path...</span></div>
+                            </div>
+                            <div class="flex flex-col gap-1.5 mt-1.5">
+                                <div class="flex justify-between text-[8px] text-slate-400"><span>Expert FFN Weights:</span></div>
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-1"><span class="text-[8px] font-mono w-8 text-slate-400">Crust:</span><div class="flex-1 bg-[#080C14] h-1.5 rounded-full overflow-hidden border border-brand-border/40"><div id="bar-weight-dough" class="bg-blue-400 h-full transition-all duration-300" style="width: 0%;"></div></div><span id="text-weight-dough" class="text-[8px] font-mono text-slate-400 w-6 text-right">0.00</span></div>
+                                    <div class="flex items-center gap-1"><span class="text-[8px] font-mono w-8 text-slate-400">Sauce:</span><div class="flex-1 bg-[#080C14] h-1.5 rounded-full overflow-hidden border border-brand-border/40"><div id="bar-weight-sauce" class="bg-brand-warning h-full transition-all duration-300" style="width: 0%;"></div></div><span id="text-weight-sauce" class="text-[8px] font-mono text-slate-400 w-6 text-right">0.00</span></div>
+                                    <div class="flex items-center gap-1"><span class="text-[8px] font-mono w-8 text-slate-400">Cheese:</span><div class="flex-1 bg-[#080C14] h-1.5 rounded-full overflow-hidden border border-brand-border/40"><div id="bar-weight-cheese" class="bg-brand-gold h-full transition-all duration-300" style="width: 0%;"></div></div><span id="text-weight-cheese" class="text-[8px] font-mono text-slate-400 w-6 text-right">0.00</span></div>
+                                    <div class="flex items-center gap-1"><span class="text-[8px] font-mono w-8 text-slate-400">Veggie:</span><div class="flex-1 bg-[#080C14] h-1.5 rounded-full overflow-hidden border border-brand-border/40"><div id="bar-weight-veggie" class="bg-brand-highlight h-full transition-all duration-300" style="width: 0%;"></div></div><span id="text-weight-veggie" class="text-[8px] font-mono text-slate-400 w-6 text-right">0.00</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-stretch z-10 w-full gap-4 relative">
+                        <div id="expert-dough" class="flex-1 bg-brand-card p-3 rounded-xl border border-brand-border transition-all duration-300 flex flex-col justify-between items-center text-center relative group">
+                            <div class="absolute inset-0 bg-brand-bg/65 rounded-xl transition-all duration-300 z-10 flex flex-col justify-center items-center expert-shroud"><span class="px-2 py-0.5 text-[8px] border border-slate-700/60 rounded text-slate-500 font-mono bg-brand-bg">SLEEPING</span></div>
+                            <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-2">Expert: Dough</span>
+                            <div class="p-3 bg-[#080C14] rounded-lg border border-brand-border group-hover:border-blue-400/40 transition-colors"><svg class="w-8 h-8 text-blue-400 animate-pulse-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg></div>
+                            <span class="text-[10px] text-slate-400 mt-2">Crust Artisan</span>
+                        </div>
+                        <div id="expert-sauce" class="flex-1 bg-brand-card p-3 rounded-xl border border-brand-border transition-all duration-300 flex flex-col justify-between items-center text-center relative group">
+                            <div class="absolute inset-0 bg-brand-bg/65 rounded-xl transition-all duration-300 z-10 flex flex-col justify-center items-center expert-shroud"><span class="px-2 py-0.5 text-[8px] border border-slate-700/60 rounded text-slate-500 font-mono bg-brand-bg">SLEEPING</span></div>
+                            <span class="text-[10px] font-bold text-brand-warning uppercase tracking-wider mb-2">Expert: Sauce</span>
+                            <div class="p-3 bg-[#080C14] rounded-lg border border-brand-border group-hover:border-brand-warning/40 transition-colors"><svg class="w-8 h-8 text-brand-warning animate-pulse-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg></div>
+                            <span class="text-[10px] text-slate-400 mt-2">Tomato Squeezer</span>
+                        </div>
+                        <div id="expert-cheese" class="flex-1 bg-brand-card p-3 rounded-xl border border-brand-border transition-all duration-300 flex flex-col justify-between items-center text-center relative group">
+                            <div class="absolute inset-0 bg-brand-bg/65 rounded-xl transition-all duration-300 z-10 flex flex-col justify-center items-center expert-shroud"><span class="px-2 py-0.5 text-[8px] border border-slate-700/60 rounded text-slate-500 font-mono bg-brand-bg">SLEEPING</span></div>
+                            <span class="text-[10px] font-bold text-brand-gold uppercase tracking-wider mb-2">Expert: Cheese</span>
+                            <div class="p-3 bg-[#080C14] rounded-lg border border-brand-border group-hover:border-brand-gold/40 transition-colors"><svg class="w-8 h-8 text-brand-gold animate-pulse-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22a10 10 0 01-10-10H12v10zm0 0a10 10 0 0010-10H12v10zm0-10V2a10 10 0 0110 10H12zm0 0V2a10 10 0 00-10 10h10z"></path></svg></div>
+                            <span class="text-[10px] text-slate-400 mt-2">Fromage Master</span>
+                        </div>
+                        <div id="expert-veggie" class="flex-1 bg-brand-card p-3 rounded-xl border border-brand-border transition-all duration-300 flex flex-col justify-between items-center text-center relative group">
+                            <div class="absolute inset-0 bg-brand-bg/65 rounded-xl transition-all duration-300 z-10 flex flex-col justify-center items-center expert-shroud"><span class="px-2 py-0.5 text-[8px] border border-slate-700/60 rounded text-slate-500 font-mono bg-brand-bg">SLEEPING</span></div>
+                            <span class="text-[10px] font-bold text-brand-highlight uppercase tracking-wider mb-2">Expert: Veggies</span>
+                            <div class="p-3 bg-[#080C14] rounded-lg border border-brand-border group-hover:border-brand-highlight/40 transition-colors"><svg class="w-8 h-8 text-brand-highlight animate-pulse-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 13.961 8 13.961 8c1 0 2.5-1.5 3.696-2.696A8.026 8.026 0 0117.657 18.657z"></path></svg></div>
+                            <span class="text-[10px] text-slate-400 mt-2">Topping Ninja</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col items-center z-10 w-full">
+                        <div class="w-1 h-8 bg-gradient-to-b from-brand-border to-brand-accent/30"></div>
+                        <div id="node-output" class="w-1/2 bg-brand-card p-4 rounded-xl border border-brand-border flex flex-col items-center gap-3 relative">
+                            <span class="absolute -top-2.5 right-4 px-2 py-0.5 text-[9px] uppercase font-bold bg-brand-highlight/20 border border-brand-highlight/40 text-brand-highlight rounded">Next-Token Output</span>
+                            <div class="flex items-center gap-4 bg-[#080C14] p-3 rounded-lg border border-brand-border w-full justify-center">
+                                <div id="pizza-visual-box" class="w-12 h-12 bg-orange-600/20 border border-orange-500 rounded-lg flex items-center justify-center transition-all duration-300"><svg class="w-8 h-8 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 22h20L12 2zm0 4l6.5 13H5.5L12 6z"></path></svg></div>
+                                <div class="flex flex-col text-left"><span class="text-xs font-bold text-white">Consolidated Pizza Token</span><span id="output-pizza-desc" class="text-[10px] text-slate-400">Waiting for assembly...</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <canvas id="canvas-particles" class="absolute inset-0 w-full h-full pointer-events-none z-20"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <section class="max-w-7xl w-full mx-auto px-4 md:px-6 pb-12 mt-6">
+        <div class="bg-brand-card rounded-2xl border border-brand-border shadow-lg p-6 flex flex-col gap-6">
+            <div class="flex flex-wrap border-b border-brand-border gap-2">
+                <button id="tab-btn-science" class="pb-3 px-4 text-sm font-semibold border-b-2 border-brand-accent text-white transition-all">The Science of MoE Architecture</button>
+                <button id="tab-btn-mapping" class="pb-3 px-4 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent transition-all">Metaphor Decoder (Pizza vs. Transformer)</button>
+                <button id="tab-btn-math" class="pb-3 px-4 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent transition-all">The Softmax Gating Equation</button>
+            </div>
+            <div id="tab-content-science" class="flex flex-col gap-4 text-sm text-slate-300 leading-relaxed">
+                <h3 class="text-lg font-bold text-white">Why Modern LLMs are Switching to MoE</h3>
+                <p>Historically, large language models were "dense" — every parameter of the model was activated to process every token. An 80-billion parameter model runs 80 billion calculations for the word "the", and another 80 billion for "cat". This scales linearly, resulting in massive hosting costs and astronomical training latency.</p>
+                <p>Mixture of Experts (MoE) is a structural paradigm that transforms a large model into an array of smaller, specialized subnetworks (the "experts"). Instead of executing the entire model, a small neural gate (the Gating Network) reads the input token and instantly computes routing probabilities. Only the top $k$ experts are awakened to handle the token — Sparse Activation.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-2">
+                    <div class="p-4 bg-brand-bg rounded-xl border border-brand-border"><span class="text-xs font-bold text-brand-accent uppercase block mb-1">Scale without Overhead</span>An MoE model can have 600 billion parameters total, but only use 12 billion parameters per token — the accuracy of a huge model at the cost of a small one.</div>
+                    <div class="p-4 bg-brand-bg rounded-xl border border-brand-border"><span class="text-xs font-bold text-brand-highlight uppercase block mb-1">FFN Specialization</span>Through joint backpropagation, individual Feed-Forward Networks (FFNs) discover niches — syntax, math, vision, or specific languages.</div>
+                    <div class="p-4 bg-brand-bg rounded-xl border border-brand-border"><span class="text-xs font-bold text-brand-warning uppercase block mb-1">The Gating Network</span>A small, parametric linear gate trained alongside the experts, so routing matches the strengths of downstream subnetworks.</div>
+                </div>
+            </div>
+            <div id="tab-content-mapping" class="hidden flex-col gap-4">
+                <h3 class="text-lg font-bold text-white">The Pizza Factory Metaphor Decoder</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse border border-brand-border">
+                        <thead><tr class="bg-brand-bg border-b border-brand-border text-slate-200"><th class="p-3 font-semibold">Factory Metaphor</th><th class="p-3 font-semibold">Transformer Equivalent</th><th class="p-3 font-semibold">ML Purpose</th></tr></thead>
+                        <tbody class="divide-y divide-brand-border/60 text-slate-300">
+                            <tr><td class="p-3 font-bold text-brand-accent">Pizza Tokens (Orders)</td><td class="p-3 font-mono">Input Vector Embedding ($x$)</td><td class="p-3">The dense representation of a single text token moving up through transformer layers.</td></tr>
+                            <tr><td class="p-3 font-bold text-brand-accent">Robot Manager Chef</td><td class="p-3 font-mono">Gating Network ($G(x)$)</td><td class="p-3">A small gating block with learned weights that decides which subnetworks process the embedding.</td></tr>
+                            <tr><td class="p-3 font-bold text-brand-accent">Specialized Stations</td><td class="p-3 font-mono">Expert MLPs / FFNs ($E_i(x)$)</td><td class="p-3">Feed-forward layers trained to excel at specific features or semantics.</td></tr>
+                            <tr><td class="p-3 font-bold text-brand-accent">Active vs. Sleeping Stations</td><td class="p-3 font-mono">Sparse Gated Execution</td><td class="p-3">Power-saving: inactive neurons skip the forward pass, conserving compute.</td></tr>
+                            <tr><td class="p-3 font-bold text-brand-accent">Finished Pizza Box</td><td class="p-3 font-mono">Linear Output Aggregation ($y$)</td><td class="p-3">A weighted combination of expert outputs forming the next-token embedding.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="tab-content-math" class="hidden flex-col gap-4 text-slate-300">
+                <h3 class="text-lg font-bold text-white">The Mathematical Foundation of Sparse Routing</h3>
+                <p>Let an MoE layer consist of $N$ Feed-Forward Networks $E_1, E_2, \dots, E_N$. Given an input token embedding $x$, the aggregated output $y$ is:</p>
+                <div class="bg-brand-bg p-4 rounded-xl border border-brand-border font-mono text-center my-2 text-brand-accent text-lg">$$y = \sum_{i=1}^{N} G(x)_i E_i(x)$$</div>
+                <p>where $G(x)_i$ is the routing score for the $i$-th expert. To enforce sparsity, the raw logits pass through a $\text{KeepTop-}k$ that zeroes all but the top $k$ values ($k \in \{1, 2\}$):</p>
+                <div class="bg-brand-bg p-4 rounded-xl border border-brand-border font-mono text-center my-2 text-brand-highlight text-lg">$$G(x) = \text{Softmax}\left(\text{KeepTop-}k\left(W_g \cdot x + \epsilon, k\right)\right)$$</div>
+                <p>$W_g$ is the learned routing weight matrix, and $\epsilon$ is low-amplitude noise injected during training to balance load and stop one "popular" expert from starving the others of gradient.</p>
+            </div>
+        </div>
+    </section>
+
+    <div id="modal-success" class="fixed inset-0 bg-brand-bg/85 backdrop-blur-sm z-50 flex justify-center items-center opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-brand-card border border-brand-highlight rounded-2xl p-6 max-w-md w-full mx-4 shadow-neon-green flex flex-col items-center text-center gap-4">
+            <div class="p-3 bg-brand-highlight/10 border border-brand-highlight/30 text-brand-highlight rounded-full"><svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg></div>
+            <h3 class="text-xl font-bold text-white uppercase tracking-wider">Quest Completed!</h3>
+            <p id="modal-success-desc" class="text-sm text-slate-300 leading-relaxed">You successfully mastered the principles of Mixture of Experts routing!</p>
+            <button id="btn-modal-close" class="mt-2 py-2 px-6 bg-brand-highlight text-brand-bg font-bold rounded-xl shadow-neon-green hover:brightness-110 active:scale-95 transition-all">Continue Exploring</button>
+        </div>
+    </div>
+
+    <!-- LMS embed SDK (classic script, loaded before the app so createSim is global) -->
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+</body>
+</html>

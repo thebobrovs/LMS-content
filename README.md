@@ -12,6 +12,7 @@ topics/<subject>/<slug>.mdx   # PROD lessons (published) = knowledge-graph nodes
 paths/<id>.mdx                # curated tracks (levels 100/200/300) over topics
 glossary.json                 # shared term → definition (+ optional link)
 media/                        # images/diagrams, served at /media/…
+simulations/packages/<id>/    # interactive sim apps embedded by <Simulation id>
 staging/                      # DRAFTS awaiting audit + promotion
 personas/                     # per-topic SME experts (who authors each topic)
 skills/                       # authoring skills + the SME content pipeline
@@ -21,14 +22,17 @@ pipeline/                     # validate.mjs · promote.mjs · AUDIT.md
 - A topic's `id` is its path under `topics/` without `.mdx`
   (e.g. `data-structures/hash-tables`).
 - Reference images as `/media/<file>`.
+- **Simulations live here too** (authored content). The host↔sim **SDK** stays in
+  the app repo (the contract `Simulation.tsx` implements); the app's build copies
+  it into each bundle and fetches `simulations/packages/` alongside `topics/`.
 
 ## Authoring
 
 Frontmatter and the MDX component set (Simulation, YouTube, Callout, Flashcard,
-Quiz, Steps, Figure, Tip, Term) are documented in the application repo under
-[`skills/`](https://github.com/thebobrovs/LMS/tree/main/skills) — see
-`lms-authoring-topics`, `lms-authoring-paths`, `lms-authoring-simulations`. A
-per-file validator lives there too:
+Quiz, Steps, Figure, Tip, Term) are documented in this repo under
+[`skills/`](skills/) — see `lms-authoring-topics`, `lms-authoring-paths`,
+`lms-authoring-simulations`, and `sme-content-pipeline`. A per-file validator
+lives there too:
 `node skills/lms-authoring-topics/scripts/validate.mjs <file>`.
 
 ## Authoring pipeline (SME → staging → prod)

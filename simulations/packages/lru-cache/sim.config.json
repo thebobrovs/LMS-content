@@ -1,0 +1,14 @@
+{
+  "id": "lru-cache",
+  "title": "LRU cache eviction",
+  "version": "1.0.0",
+  "props": {
+    "capacity": { "type": "number", "default": 3 }
+  },
+  "checkpoints": [
+    {
+      "id": "cause-eviction",
+      "hint": "Access more distinct keys than the cache capacity to evict the least-recently-used one."
+    }
+  ]
+}

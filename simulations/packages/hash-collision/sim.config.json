@@ -1,0 +1,14 @@
+{
+  "id": "hash-collision",
+  "title": "Hash collisions",
+  "version": "1.0.0",
+  "props": {
+    "buckets": { "type": "number", "default": 8 }
+  },
+  "checkpoints": [
+    {
+      "id": "cause-collision",
+      "hint": "Insert two keys whose character codes sum to the same value mod the bucket count."
+    }
+  ]
+}

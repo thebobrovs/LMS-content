@@ -1,0 +1,12 @@
+{
+  "id": "scale-hierarchy",
+  "title": "TPU v5p scale hierarchy",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    {
+      "id": "reach-multislice",
+      "hint": "Step all the way up the hierarchy to Multislice to see where ICI ends and the Data Center Network (DCN) takes over."
+    }
+  ]
+}

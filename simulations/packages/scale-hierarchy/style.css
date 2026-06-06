@@ -1,0 +1,235 @@
+/* Mirrors the LMS design tokens (docs/12) so the sim matches the active theme. */
+:root {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-contrast: #ffffff;
+  --accent: #0d9488;
+  --danger: #dc2626;
+  --warning: #b45309;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a;
+    --fg: #e5e7eb;
+    --muted: #9ca3af;
+    --surface: #242424;
+    --border: #2e2e2e;
+    --primary: #60a5fa;
+    --primary-contrast: #0b1220;
+    --accent: #2dd4bf;
+    --danger: #f87171;
+    --warning: #fbbf24;
+  }
+}
+[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-contrast: #ffffff;
+  --accent: #0d9488;
+  --danger: #dc2626;
+  --warning: #b45309;
+}
+[data-theme="dark"] {
+  --bg: #1a1a1a;
+  --fg: #e5e7eb;
+  --muted: #9ca3af;
+  --surface: #242424;
+  --border: #2e2e2e;
+  --primary: #60a5fa;
+  --primary-contrast: #0b1220;
+  --accent: #2dd4bf;
+  --danger: #f87171;
+  --warning: #fbbf24;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+#app {
+  padding: 16px;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.step {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 13px;
+}
+.step.active {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border-color: var(--primary);
+}
+.step.done {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.arrow {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.grid {
+  display: grid;
+  gap: 4px;
+}
+.cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--accent);
+  display: block;
+}
+.cube {
+  display: flex;
+  gap: 12px;
+}
+.layer {
+  padding: 4px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}
+.blocks {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  max-width: 320px;
+}
+.block {
+  width: 28px;
+  height: 20px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--accent), var(--primary));
+  display: block;
+}
+.multi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.multi .pod {
+  padding: 18px 22px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--primary));
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+}
+.multi .dcn {
+  font-size: 11px;
+  color: var(--warning);
+  border-top: 2px dashed var(--warning);
+  padding-top: 2px;
+  min-width: 38px;
+  text-align: center;
+}
+
+.info {
+  margin-top: 14px;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.name {
+  font-size: 18px;
+  font-weight: 700;
+}
+.count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.net {
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.net-ici {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+.net-dcn {
+  background: color-mix(in srgb, var(--warning) 20%, transparent);
+  color: var(--warning);
+}
+.detail {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.nav {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.nav button {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--primary-contrast);
+}
+.nav button.secondary {
+  background: var(--surface);
+  color: var(--fg);
+}
+.nav button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pos {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}

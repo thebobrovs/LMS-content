@@ -1,0 +1,14 @@
+{
+  "id": "torus-3d",
+  "title": "3D torus interconnect (4×4×4 slice)",
+  "version": "1.0.0",
+  "props": {
+    "n": { "type": "number", "default": 4 }
+  },
+  "checkpoints": [
+    {
+      "id": "inspect-neighbors",
+      "hint": "Click any chip to highlight its six ICI neighbors, then toggle the wrap-around links to see how edge chips close the torus."
+    }
+  ]
+}
