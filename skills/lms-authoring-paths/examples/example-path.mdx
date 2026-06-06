@@ -1,0 +1,28 @@
+---
+# Example learning path. Copy into content/paths/<id>.mdx and adapt.
+# Every topic id below must be a real content/topics/**.mdx file.
+title: From foundations to systems
+summary: A guided track up the stack — how memory and data structures work, then how they power real systems and accelerators.
+levels:
+  - level: 100
+    title: Foundations
+    topics:
+      - fundamentals/arrays
+  - level: 200
+    title: Data structures
+    topics:
+      - data-structures/hash-tables
+  - level: 300
+    title: Systems & hardware
+    topics:
+      - systems/caching
+      - ml-systems/tpu-v5p-topology
+status: published
+---
+
+This path threads a single idea — **contiguous, addressable memory** — from the
+array all the way up to a TPU pod. Each level builds on the last: arrays explain
+indexed access, hash tables turn that into O(1) lookup, caching applies it to real
+systems, and the TPU topology shows the same thinking at supercomputer scale.
+
+Work top to bottom, or jump to whatever you need — every lesson stands alone.

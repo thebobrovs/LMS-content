@@ -1,0 +1,74 @@
+---
+# A complete example topic. Copy this into content/topics/<subject>/<slug>.mdx
+# and adapt. (Lives under skills/ so it is NOT loaded by the app; the simulation
+# id below is illustrative — it would need a real registry entry to render.)
+title: Binary Search
+summary: Find an item in a sorted array in O(log n) by repeatedly halving the search range.
+tags: [algorithms, searching, fundamentals]
+difficulty: beginner
+estimatedMinutes: 12
+level: 100
+prerequisites: [fundamentals/arrays]
+relatedTo: []
+videos:
+  - youtubeId: MFhxShGxHWc
+    title: Binary search visualized
+flashcards:
+  - front: What must be true of the array before binary search works?
+    back: It must be sorted — binary search relies on ordering to discard half the range each step.
+  - front: What is the time complexity of binary search?
+    back: O(log n) — each comparison halves the remaining search space.
+quiz:
+  - question: Why is binary search O(log n) and not O(n)?
+    choices:
+      - Each step discards half of the remaining elements
+      - It checks every element once
+      - It sorts the array first
+    answer: 0
+    explanation: Halving the range each comparison means at most log₂(n) steps.
+status: published
+---
+
+## The idea
+
+**Binary search** finds a target in a **sorted** array by comparing it to the
+middle element and discarding the half that can't contain it. Each comparison
+halves the search range, so even a million-element array takes at most ~20 steps.
+
+Reading `arr[mid]` is O(1) (see [arrays](/topics/fundamentals/arrays)), and we do
+it `log₂(n)` times — that's the whole cost.
+
+<Callout type="note">
+Binary search only works on **sorted** data. On unsorted data you'd pay O(n log n)
+to sort first — only worth it if you search the same array many times.
+</Callout>
+
+## Try it
+
+<Simulation id="binary-search" height={360} />
+
+Pick a target and step through. Watch the `lo`/`hi` bounds collapse toward the
+answer, and notice how the number of steps barely grows as the array gets bigger.
+
+<YouTube id="MFhxShGxHWc" title="Binary search visualized" />
+
+## Check yourself
+
+<Flashcard
+  front="If the middle element is less than the target, which half do you keep?"
+  back="The upper half — everything ≤ middle is too small, so move lo to mid + 1."
+/>
+
+## Put it together
+
+<Steps>
+<Step title="Run a search that finds the target">
+Search for a value that's in the array and count the comparisons.
+</Step>
+<Step title="Run a search that misses">
+Search for a value that isn't there — confirm the range collapses to empty.
+</Step>
+<Step title="Predict the step count for 1,000 items">
+Estimate log₂(1000) ≈ 10, then verify in the simulation.
+</Step>
+</Steps>

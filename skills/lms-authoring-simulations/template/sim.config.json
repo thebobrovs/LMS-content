@@ -1,0 +1,14 @@
+{
+  "id": "example-counter",
+  "title": "Example counter",
+  "version": "1.0.0",
+  "props": {
+    "target": { "type": "number", "default": 5 }
+  },
+  "checkpoints": [
+    {
+      "id": "reach-target",
+      "hint": "Click the button until the counter reaches the target."
+    }
+  ]
+}

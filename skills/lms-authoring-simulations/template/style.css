@@ -1,0 +1,96 @@
+/* Mirrors the LMS design tokens (docs/12-design-system.md) so the sim matches
+ * the active theme. Copy this block into new sims; it's the standard palette. */
+:root {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-contrast: #ffffff;
+  --accent: #0d9488;
+  --success: #16a34a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a;
+    --fg: #e5e7eb;
+    --muted: #9ca3af;
+    --surface: #242424;
+    --border: #2e2e2e;
+    --primary: #60a5fa;
+    --primary-contrast: #0b1220;
+    --accent: #2dd4bf;
+    --success: #4ade80;
+  }
+}
+[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-contrast: #ffffff;
+  --accent: #0d9488;
+  --success: #16a34a;
+}
+[data-theme="dark"] {
+  --bg: #1a1a1a;
+  --fg: #e5e7eb;
+  --muted: #9ca3af;
+  --surface: #242424;
+  --border: #2e2e2e;
+  --primary: #60a5fa;
+  --primary-contrast: #0b1220;
+  --accent: #2dd4bf;
+  --success: #4ade80;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+#app {
+  padding: 16px;
+}
+.status {
+  margin: 0 0 12px;
+  min-height: 1.4em;
+  color: var(--muted);
+}
+.status.done {
+  color: var(--success);
+  font-weight: 600;
+}
+.controls {
+  display: flex;
+  gap: 8px;
+}
+button {
+  font: inherit;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  cursor: pointer;
+}
+button.secondary {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

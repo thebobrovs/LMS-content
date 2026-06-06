@@ -1,0 +1,15 @@
+{
+  "name": "lms-content",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Learning content for LMS — topics, paths, glossary, media. Authored by SME personas, validated and promoted staging → prod.",
+  "type": "module",
+  "scripts": {
+    "validate": "node pipeline/validate.mjs",
+    "validate:staging": "node pipeline/validate.mjs --staging",
+    "promote": "node pipeline/promote.mjs"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  }
+}
