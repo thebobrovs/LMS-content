@@ -113,7 +113,7 @@ they aren't collapsed, e.g. `like{" "}<Tip …>chaining</Tip>{" "}or …`.
 
 ## `<Term>` (shared-glossary tip)
 
-Like `<Tip>`, but the definition is **defined once** in `content/glossary.json`
+Like `<Tip>`, but the definition lives in a **per-path glossary** (`glossary/<pathId>.json`)
 and **reused** everywhere — so a term's explanation stays consistent. Prefer
 `<Term>` over `<Tip>` for anything that recurs across lessons.
 
@@ -124,11 +124,11 @@ and **reused** everywhere — so a term's explanation stays consistent. Prefer
 
 - Lookup key = the inner text, lowercased — or an explicit `id` when the shown
   text differs from the key (e.g. `<Term id="ici">ICI</Term>`).
-- Define terms in `content/glossary.json`:
+- Define terms in the relevant path glossary `glossary/<pathId>.json`:
   ```json
   { "open addressing": { "definition": "Probe to the next free slot…", "href": "https://…", "linkLabel": "Read more" } }
   ```
-- CI fails if a `<Term>` has no glossary entry. All terms also list on `/glossary`.
+- A `<Term>` must resolve in the glossary of a path that contains the topic (CI checks this). Each path's terms list on `/paths/<id>/glossary`.
 
 Use `<Tip text="…">` for a one-off, lesson-specific aside; use `<Term>` for shared
 vocabulary.

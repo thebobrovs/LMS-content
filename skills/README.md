@@ -9,7 +9,7 @@ plus `reference/`, `examples/`, `template/`, and `scripts/` as needed.
 
 These skills live **in the content repo** (`LMS-content`) alongside the content
 they govern. Authoring a lesson runs in this repo's root layout (`topics/`,
-`paths/`, `glossary.json`).
+`paths/`, `glossary/`).
 
 | Skill | Use it to… |
 |-------|-----------|
