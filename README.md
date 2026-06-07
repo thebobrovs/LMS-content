@@ -1,7 +1,7 @@
 # LMS content
 
 The learning content for **LMS** ([thebobrovs/LMS](https://github.com/thebobrovs/LMS))
-— topics, paths, the shared glossary, and media. The application repo checks this
+— topics, paths, per-path glossaries, and media. The application repo checks this
 out at build time (`scripts/fetch-content.mjs`) and renders it; nothing here is
 application code.
 
@@ -10,7 +10,7 @@ application code.
 ```
 topics/<subject>/<slug>.mdx   # PROD lessons (published) = knowledge-graph nodes
 paths/<id>.mdx                # curated tracks (levels 100/200/300) over topics
-glossary.json                 # shared term → definition (+ optional link)
+glossary/<pathId>.json        # per-path term → definition (+ optional link)
 media/                        # images/diagrams, served at /media/…
 simulations/packages/<id>/    # interactive sim apps embedded by <Simulation id>
 staging/                      # DRAFTS awaiting audit + promotion

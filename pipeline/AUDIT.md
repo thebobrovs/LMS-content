@@ -6,7 +6,7 @@ Before a staged topic is promoted, it passes an **automated gate** and a
 ## 1. Automated (CI, blocking)
 - `node pipeline/validate.mjs --staging` is green: frontmatter contract, graph
   integrity (prereq/related exist, no dangling), quiz answer ranges, and every
-  `<Term>` resolves in the glossary.
+  `<Term>` resolves in the topic's path glossary.
 
 ## 2. Sub-agent critics (spawned per the `sme-content-pipeline` skill)
 Each returns pass/fail with specifics; promotion needs a majority pass:

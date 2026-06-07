@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 /**
  * Standalone validator for the LMS-content repo (root layout: topics/, paths/,
- * glossary.json, plus staging/). Runs in this repo's CI — the automated gate of
- * the staging → prod pipeline — without the application. Mirrors the app's
- * content rules (frontmatter, graph integrity, quiz indices, glossary terms).
+ * glossary/<pathId>.json, plus staging/). Runs in this repo's CI — the automated
+ * gate of the staging → prod pipeline — without the application. Mirrors the
+ * app's content rules (frontmatter, graph integrity, quiz indices, glossary).
  *
- * Simulation `<Simulation id>` refs are NOT checked here (the registry lives in
- * the app repo); the app's CI validates those after fetch. Usage:
+ * Glossaries are **per path** (glossary/<pathId>.json). A topic's <Term>s must
+ * resolve in its *effective* glossary: the union of the glossaries of the paths
+ * that contain the topic, or — for a topic in no path — the union of all
+ * glossaries. Simulation `<Simulation id>` refs are checked against
+ * simulations/packages. Usage:
  *
  *   node pipeline/validate.mjs            # validate prod (topics/ + paths/)
  *   node pipeline/validate.mjs --staging  # also validate staging/topics/**
@@ -19,9 +22,19 @@ const ROOT = process.cwd();
 const includeStaging = process.argv.includes("--staging");
 const errors = [];
 
-const glossary = fs.existsSync(path.join(ROOT, "glossary.json"))
-  ? JSON.parse(fs.readFileSync(path.join(ROOT, "glossary.json"), "utf8"))
-  : {};
+// Per-path glossaries: glossary/<name>.json → { name: { term: entry } }.
+const GLOSS_DIR = path.join(ROOT, "glossary");
+const glossaries = {};
+if (fs.existsSync(GLOSS_DIR)) {
+  for (const f of fs.readdirSync(GLOSS_DIR)) {
+    if (f.endsWith(".json")) {
+      glossaries[f.replace(/\.json$/, "")] = JSON.parse(
+        fs.readFileSync(path.join(GLOSS_DIR, f), "utf8"),
+      );
+    }
+  }
+}
+const unionGloss = Object.assign({}, ...Object.values(glossaries));
 
 function walk(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -36,7 +49,8 @@ function walk(dir) {
 const SIMS_DIR = path.join(ROOT, "simulations", "packages");
 const simIds = new Set(
   fs.existsSync(SIMS_DIR)
-    ? fs.readdirSync(SIMS_DIR, { withFileTypes: true })
+    ? fs
+        .readdirSync(SIMS_DIR, { withFileTypes: true })
         .filter((e) => e.isDirectory() && fs.existsSync(path.join(SIMS_DIR, e.name, "sim.config.json")))
         .map((e) => e.name)
     : [],
@@ -55,6 +69,28 @@ const prod = topicsFrom(path.join(ROOT, "topics"));
 const staging = includeStaging ? topicsFrom(path.join(ROOT, "staging", "topics")) : [];
 const topics = [...prod, ...staging];
 const ids = new Set(topics.map((t) => t.id));
+
+// Parse paths up front: validate them and build topic → set(pathId).
+const pathFiles = walk(path.join(ROOT, "paths"));
+const parsedPaths = pathFiles.map((file) => ({
+  pid: path.basename(file, ".mdx"),
+  data: matter(fs.readFileSync(file, "utf8")).data,
+}));
+const pathsByTopic = new Map();
+for (const { pid, data } of parsedPaths) {
+  for (const lvl of data.levels ?? [])
+    for (const tid of lvl.topics ?? []) {
+      if (!pathsByTopic.has(tid)) pathsByTopic.set(tid, new Set());
+      pathsByTopic.get(tid).add(pid);
+    }
+}
+
+// A topic's effective glossary: union of its paths' glossaries, else union of all.
+function effectiveGlossary(topicId) {
+  const pids = pathsByTopic.get(topicId);
+  if (!pids || pids.size === 0) return unionGloss;
+  return Object.assign({}, ...[...pids].map((p) => glossaries[p] ?? {}));
+}
 
 for (const t of topics) {
   const { id, data, content } = t;
@@ -83,20 +119,23 @@ for (const t of topics) {
       errors.push(`${id}: quiz[${i}] answer ${q.answer} out of range`);
   });
 
+  const gloss = effectiveGlossary(id);
   for (const m of content.matchAll(/<Term\b([^>]*)>([\s\S]*?)<\/Term>/g)) {
     const idAttr = m[1].match(/\bid=["']([^"']+)["']/);
     const key = (idAttr ? idAttr[1] : m[2]).toLowerCase().trim();
-    if (!glossary[key]) errors.push(`${id}: glossary term "${key}" is not defined`);
+    if (!gloss[key]) {
+      const pids = pathsByTopic.get(id);
+      const where = pids ? `the glossary of its path(s): ${[...pids].join(", ")}` : "any path glossary";
+      errors.push(`${id}: glossary term "${key}" is not defined in ${where}`);
+    }
   }
   for (const m of content.matchAll(/<Simulation[^>]*\bid=(["'])(.*?)\1/g)) {
     if (!simIds.has(m[2])) errors.push(`${id}: simulation "${m[2]}" has no simulations/packages/${m[2]}`);
   }
 }
 
-// Paths: every level's topic ids must resolve.
-for (const file of walk(path.join(ROOT, "paths"))) {
-  const pid = path.basename(file, ".mdx");
-  const { data } = matter(fs.readFileSync(file, "utf8"));
+// Paths: required fields + every level's topic ids must resolve.
+for (const { pid, data } of parsedPaths) {
   for (const f of ["title", "summary", "levels"]) {
     if (data[f] === undefined) errors.push(`path ${pid}: missing "${f}"`);
   }
@@ -111,5 +150,5 @@ if (errors.length) {
   process.exit(1);
 }
 console.log(
-  `✓ valid — ${prod.length} prod topic(s)${includeStaging ? ` + ${staging.length} staged` : ""}, ${walk(path.join(ROOT, "paths")).length} path(s).`,
+  `✓ valid — ${prod.length} prod topic(s)${includeStaging ? ` + ${staging.length} staged` : ""}, ${parsedPaths.length} path(s), ${Object.keys(glossaries).length} glossary file(s).`,
 );

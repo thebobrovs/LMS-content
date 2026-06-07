@@ -28,7 +28,7 @@ Write a short plan (in the PR description or a `staging/<id>.plan.md`):
 ## 3. Draft into staging
 - Author `staging/topics/<subject>/<slug>.mdx` with `status: draft`, following
   the `lms-authoring-topics` skill (frontmatter contract + component catalog).
-- Put images in `media/`; define shared terms in `glossary.json`.
+- Put images in `media/`; define terms in the path's `glossary/<pathId>.json` (a topic resolves terms against the glossaries of the paths that contain it).
 - Validate: `node pipeline/validate.mjs --staging`.
 
 ## 4. Audit (human + sub-agent critics)
