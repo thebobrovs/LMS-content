@@ -59,5 +59,18 @@
   },
   "pipeline parallelism": {
     "definition": "The model's layers are split into stages on different devices; micro-batches stream through so every stage stays busy. (PP)"
+  },
+  "consistent hashing": {
+    "definition": "A scheme that maps keys and nodes onto the same hash ring so that adding or removing a node remaps only about 1/N of the keys, not nearly all of them.",
+    "href": "https://en.wikipedia.org/wiki/Consistent_hashing",
+    "linkLabel": "Consistent hashing (Wikipedia)"
+  },
+  "hash ring": {
+    "definition": "The circular hash space (0…2^m, wrapping around) onto which both nodes and keys are hashed; a key is owned by the first node clockwise from its position."
+  },
+  "virtual node": {
+    "definition": "Several ring positions per physical node (replicas), used so keys spread evenly across nodes instead of clumping in large gaps.",
+    "href": "https://www.usenix.org/legacy/event/osdi06/tech/full_papers/decandia/decandia.pdf",
+    "linkLabel": "Dynamo (SOSP 2007)"
   }
 }

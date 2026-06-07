@@ -1,0 +1,95 @@
+---
+title: Consistent hashing
+summary: Spread keys across a changing set of nodes so a rescale moves about 1/N of them, not nearly all.
+tags: [systems, distributed-systems, hashing]
+difficulty: intermediate
+estimatedMinutes: 18
+prerequisites: [data-structures/hash-tables]
+relatedTo: [systems/caching]
+videos: []
+flashcards:
+  - front: Why does sharding by hash(key) % N fall apart when you add a server?
+    back: Changing N changes the modulus for almost every key, so nearly all keys map to a different node at once — a near-total remap. For a cache, that's a miss storm.
+  - front: What problem do virtual nodes solve?
+    back: With one ring position per node, the gaps between nodes are uneven, so load is uneven. Giving each node many positions (replicas) evens out the key distribution.
+quiz:
+  - question: You shard across 4 cache servers with hash(key) % N and add a 5th. Roughly what fraction of keys now map to a different server?
+    choices:
+      - About 1/5
+      - About 4/5
+      - None — only new keys are affected
+    answer: 1
+    explanation: With mod-N the modulus changes for almost every key when N changes, so about (N-1)/N = 4/5 move. Consistent hashing instead moves about 1/N.
+  - question: On a consistent-hashing ring (no virtual nodes), adding one node remaps which keys?
+    choices:
+      - All keys
+      - Only the keys in the arc between the new node and its clockwise neighbor
+      - A random half of the keys
+    answer: 1
+    explanation: Only keys that now fall to the newly inserted position change owner — about 1/N of them on average. With virtual nodes the moved keys are split across several small arcs, but they still total about 1/N.
+status: published
+---
+
+## The problem with hash-mod-N
+
+Say you spread cached entries across `N` servers by sending each key to
+`hash(key) % N`. It works — until `N` changes. Add or lose one server and the
+*modulus* changes, so `hash(key) % N` lands somewhere new for **almost every
+key at once**. About `(N-1)/N` of your keys move in an instant.
+
+For a [cache](/topics/systems/caching) that's the worst case: a rescale becomes a
+near-total **miss storm**, and the backend you were protecting takes the full
+load right when you were trying to grow.
+
+<Callout type="warning">
+The cost isn't adding a server — it's that mod-N rehashes the whole keyspace.
+You want a scheme where changing N moves only the keys it has to.
+</Callout>
+
+## The ring
+
+<Term>Consistent hashing</Term> fixes this by hashing **nodes and keys onto the
+same** <Term>hash ring</Term> — a circular hash space that wraps around. A key
+is owned by the first node you reach going clockwise from the key's position.
+
+Now adding a node only captures the keys in the arc between it and its clockwise
+neighbor; removing a node hands its arc to the next node. Either way you move
+about `1/N` of the keys instead of `(N-1)/N`. That `1/N` bound is the whole point
+(Karger et al., 1997).
+
+## Balancing with virtual nodes
+
+One position per node leaves uneven gaps, so some nodes own much larger arcs —
+and more keys — than others. The fix is <Term id="virtual node">virtual
+nodes</Term>: give each physical node many positions on the ring. The arcs
+average out, and load evens across nodes (this is how Dynamo-style stores do it
+in practice).
+
+## Prove it
+
+Add and remove nodes below and read the **remap fraction**: the ring moves a
+small slice while the mod-N baseline moves nearly everything. Then raise the
+virtual-nodes slider and watch the per-node load even out.
+
+<Simulation id="consistent-hash-ring" props={{ keys: 24, replicas: 1 }} />
+
+<Steps>
+  <Step title="Add a node and read the remap fraction">
+    Click "Add node". Note how few keys are outlined (moved) — only the arc the
+    new node took over.
+  </Step>
+  <Step title="Compare against mod-N">
+    Read the second number: under hash-mod-N that same change would have moved
+    nearly all the keys. That gap is why the ring exists.
+  </Step>
+  <Step title="Even out the load">
+    Raise "vnodes/node" and watch the per-node load line: the imbalance figure
+    (max ÷ average) falls toward 1.0 as more virtual nodes spread the keys evenly
+    around the ring.
+  </Step>
+</Steps>
+
+<Flashcard
+  front="In one sentence, what does consistent hashing buy you over hash-mod-N?"
+  back="A rescale moves only about 1/N of the keys (the affected arc) instead of nearly all of them — so adding or removing a node doesn't rehash the whole keyspace."
+/>

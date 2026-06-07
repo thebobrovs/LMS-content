@@ -1,0 +1,15 @@
+{
+  "id": "consistent-hash-ring",
+  "title": "Consistent hashing ring",
+  "version": "1.0.0",
+  "props": {
+    "keys": { "type": "number", "default": 24 },
+    "replicas": { "type": "number", "default": 1 }
+  },
+  "checkpoints": [
+    {
+      "id": "observe-remap",
+      "hint": "Add or remove a node and read the remap fraction — on the ring it stays near 1/N, far below the mod-N baseline."
+    }
+  ]
+}
