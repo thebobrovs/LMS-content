@@ -1,0 +1,21 @@
+---
+title: Scaling LLMs on TPUs
+summary: How large language models scale — sparsely across parameters with mixture-of-experts, and physically across a TPU pod's 3D-torus topology.
+levels:
+  - level: 200
+    title: Scaling the model
+    topics:
+      - ml-systems/mixture-of-experts
+  - level: 300
+    title: Scaling the hardware
+    topics:
+      - ml-systems/tpu-v5p-topology
+status: published
+---
+
+Two kinds of scaling have to meet for a modern LLM to train. **Mixture of
+experts** scales the *model*: route each token to a few specialized experts so
+parameter count grows without the per-token compute. **TPU v5p topology** scales
+the *hardware*: wire thousands of chips into a 3D torus and pick a slice shape
+that matches how you split the model. Read them in order — sparsity first, then
+the machine that runs it — or jump straight to whichever you're sizing up.
