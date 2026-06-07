@@ -1,0 +1,33 @@
+[
+  {
+    "type": "prompt",
+    "topic": "ml-systems/mixture-of-experts",
+    "title": "Compare MoE routing strategies",
+    "prompt": "Explain the trade-offs between top-1 and top-2 expert routing in a mixture-of-experts layer, and how the auxiliary load-balancing loss prevents expert collapse. Use a concrete example with 8 experts and walk through the routing of a single token."
+  },
+  {
+    "type": "notebook",
+    "topic": "ml-systems/mixture-of-experts",
+    "title": "MoE deep-dive notebook",
+    "url": "https://notebooklm.google.com/",
+    "note": "Replace with your topic-specific NotebookLM notebook URL."
+  },
+  {
+    "type": "prompt",
+    "topic": "ml-systems/tpu-v5p-topology",
+    "title": "Map a model onto a TPU slice",
+    "prompt": "Given a transformer with 64 layers and a TPU v5p slice of shape 8x8x16, propose a sensible split across data, tensor, and pipeline parallelism. Say which torus axis you'd assign to each dimension and why, then estimate where the first bottleneck appears."
+  },
+  {
+    "type": "link",
+    "topic": "ml-systems/tpu-v5p-topology",
+    "title": "TPU v5p documentation",
+    "url": "https://cloud.google.com/tpu/docs/v5p",
+    "note": "Official specs for ICI, slices, and Multislice."
+  },
+  {
+    "type": "prompt",
+    "title": "Tie it together: sparsity meets the pod",
+    "prompt": "How do mixture-of-experts (model sparsity) and the TPU 3D-torus topology (hardware) interact when scaling an LLM to a full pod? Where do they reinforce each other and where do they conflict (e.g. all-to-all expert routing vs. torus bandwidth)?"
+  }
+]

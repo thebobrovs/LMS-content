@@ -144,11 +144,45 @@ for (const { pid, data } of parsedPaths) {
       if (!ids.has(tid)) errors.push(`path ${pid}: topic "${tid}" (level ${lvl.level}) does not exist`);
 }
 
+// Resources: resources/<pathId>.json — supplementary materials per path.
+const RES_DIR = path.join(ROOT, "resources");
+const RES_TYPES = ["video", "prompt", "notebook", "link"];
+let resourceFiles = 0;
+if (fs.existsSync(RES_DIR)) {
+  for (const f of fs.readdirSync(RES_DIR).filter((x) => x.endsWith(".json"))) {
+    const pid = f.replace(/\.json$/, "");
+    resourceFiles += 1;
+    let items;
+    try {
+      items = JSON.parse(fs.readFileSync(path.join(RES_DIR, f), "utf8"));
+    } catch (e) {
+      errors.push(`resources ${pid}: invalid JSON (${e.message})`);
+      continue;
+    }
+    if (!Array.isArray(items)) {
+      errors.push(`resources ${pid}: must be a JSON array`);
+      continue;
+    }
+    items.forEach((r, i) => {
+      const at = `resources ${pid}[${i}]`;
+      if (!r || typeof r !== "object") return errors.push(`${at}: must be an object`);
+      if (!RES_TYPES.includes(r.type))
+        errors.push(`${at}: type "${r.type}" must be ${RES_TYPES.join("|")}`);
+      if (!r.title) errors.push(`${at}: missing "title"`);
+      if (r.topic && !ids.has(r.topic)) errors.push(`${at}: topic "${r.topic}" does not exist`);
+      if (r.type === "video" && !r.youtubeId) errors.push(`${at}: video needs "youtubeId"`);
+      if (r.type === "prompt" && !r.prompt) errors.push(`${at}: prompt needs "prompt"`);
+      if ((r.type === "notebook" || r.type === "link") && !r.url)
+        errors.push(`${at}: ${r.type} needs "url"`);
+    });
+  }
+}
+
 if (errors.length) {
   console.error(`✗ content validation failed — ${errors.length} problem(s):`);
   for (const e of errors) console.error(`  - ${e}`);
   process.exit(1);
 }
 console.log(
-  `✓ valid — ${prod.length} prod topic(s)${includeStaging ? ` + ${staging.length} staged` : ""}, ${parsedPaths.length} path(s), ${Object.keys(glossaries).length} glossary file(s).`,
+  `✓ valid — ${prod.length} prod topic(s)${includeStaging ? ` + ${staging.length} staged` : ""}, ${parsedPaths.length} path(s), ${Object.keys(glossaries).length} glossary file(s), ${resourceFiles} resource file(s).`,
 );
