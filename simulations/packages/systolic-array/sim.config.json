@@ -1,12 +1,12 @@
 {
   "id": "systolic-array",
   "title": "Systolic array matmul",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "props": {},
   "checkpoints": [
     {
       "id": "observe-matmul",
-      "hint": "Step (or run) through every cycle to watch the array accumulate the full A·B product on a moving diagonal wavefront — each input reused across many cells."
+      "hint": "Open 'How: the array' and pump through every cycle to watch the array accumulate the matmul on a moving diagonal wavefront, reusing each input."
     }
   ]
 }

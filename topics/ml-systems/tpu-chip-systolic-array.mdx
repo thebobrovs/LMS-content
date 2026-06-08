@@ -76,13 +76,19 @@ fetched from memory feeds a whole row of multipliers before it's discarded.
 
 ## See it move
 
-Weights sit in the cells; activations enter from the left through the incoming
-queue and flow right; partial sums flow down. The inputs enter **staggered** —
-each row a beat behind the one above — so every activation meets the right partial
-sum in step; that's why the computing cells form a moving **diagonal** wavefront.
-Pump the clock and watch the **utilization** climb as the wavefront fills the grid:
+The simulation has two views. Start on **Why: CPU vs TPU** and run the comparison:
+both do the same 27 multiply-accumulates, but watch the **memory-read counters
+diverge** — the CPU re-fetches operands ~54 times where the array reads each input
+once.
 
-<Simulation id="systolic-array" height={460} />
+Then switch to **How: the array**. Weights sit in the cells; activations enter from
+the left through the incoming queue and flow right; partial sums flow down. The
+inputs enter **staggered** — each row a beat behind the one above — so every
+activation meets the right partial sum in step; that's why the computing cells form
+a moving **diagonal** wavefront. Pump the clock and watch **utilization** climb as
+the wavefront fills the grid:
+
+<Simulation id="systolic-array" height={520} />
 
 By the middle cycles, most cells are computing **at once** — all fed by data that
 was read from memory a single time. That concurrency × reuse is the entire source
