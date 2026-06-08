@@ -1,11 +1,14 @@
 {
   "id": "moe-factory",
-  "title": "Mixture of Experts (MoE) Factory",
-  "version": "1.0.0",
-  "props": {},
+  "title": "Mixture of Experts routing",
+  "version": "2.0.0",
+  "props": {
+    "experts": { "type": "number", "default": 8 }
+  },
   "checkpoints": [
-    { "id": "quest-1", "hint": "Process 5 tokens using standard Top-2 MoE routing." },
-    { "id": "quest-2", "hint": "Switch to Top-1 gating to drop to ~25% compute." },
-    { "id": "quest-3", "hint": "Switch to Dense mode to see latency spike when all experts run." }
+    {
+      "id": "observe-sparsity",
+      "hint": "Route a token in Top-1 or Top-2 mode and watch only a few of the experts light up — far less compute than Dense."
+    }
   ]
 }
