@@ -1,0 +1,28 @@
+{
+  "systolic array": {
+    "definition": "A grid of multiply-accumulate cells through which data is pumped in rhythmic beats; each input is read from memory once and reused across many cells, trading memory traffic for throughput."
+  },
+  "mxu": {
+    "definition": "Matrix Multiply Unit — the systolic array at the heart of a TPU TensorCore, classically a 128×128 grid of MACs (16,384 multipliers) that computes one 128×128 matrix-multiply tile per pass.",
+    "href": "https://cloud.google.com/tpu/docs/v5p",
+    "linkLabel": "TPU v5p docs"
+  },
+  "mac": {
+    "definition": "Multiply-accumulate — the primitive a systolic cell performs each beat: multiply an activation by a stored weight and add it to the running partial sum (acc += a × w)."
+  },
+  "tensorcore": {
+    "definition": "The compute core of a TPU chip: one or more MXUs (matrix units) plus a vector unit and scalar unit, fed from HBM."
+  },
+  "hbm": {
+    "definition": "High-Bandwidth Memory — the fast on-package DRAM that feeds a TPU's compute units (≈95 GB at ≈2.8 TB/s on v5p)."
+  },
+  "arithmetic intensity": {
+    "definition": "FLOPs performed per byte read from memory. High intensity (lots of reuse) keeps a chip compute-bound; low intensity leaves it memory-bound and idle."
+  },
+  "bf16": {
+    "definition": "bfloat16 — a 16-bit float with fp32's full 8-bit exponent range but fewer mantissa bits. Halves the bytes moved versus fp32 while staying stable for training; the default matmul type on TPUs."
+  },
+  "weight-stationary": {
+    "definition": "A systolic dataflow that loads weights into the array once and holds them put while activations stream through — maximising weight reuse."
+  }
+}

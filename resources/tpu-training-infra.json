@@ -1,0 +1,15 @@
+[
+  {
+    "type": "link",
+    "topic": "ml-systems/tpu-chip-systolic-array",
+    "title": "JAX quickstart — run your first matmul",
+    "url": "https://docs.jax.dev/en/latest/quickstart.html",
+    "note": "Run a matmul in JAX (on a TPU VM if you have one), then dump the HLO to see XLA lower it onto the MXU."
+  },
+  {
+    "type": "prompt",
+    "topic": "ml-systems/tpu-chip-systolic-array",
+    "title": "Work the bandwidth math",
+    "prompt": "For a 128×128 systolic MXU fed from HBM at ~2.8 TB/s, explain why a CPU's fetch-per-op model is memory-bound while the array is compute-bound. Define arithmetic intensity, then show how switching fp32 → bf16 and increasing batch size each change where the bottleneck sits."
+  }
+]
