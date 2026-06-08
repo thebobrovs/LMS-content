@@ -21,6 +21,7 @@ import matter from "gray-matter";
 const ROOT = process.cwd();
 const includeStaging = process.argv.includes("--staging");
 const errors = [];
+const warnings = [];
 
 // Per-path glossaries: glossary/<name>.json → { name: { term: entry } }.
 const GLOSS_DIR = path.join(ROOT, "glossary");
@@ -134,14 +135,21 @@ for (const t of topics) {
   }
 }
 
-// Paths: required fields + every level's topic ids must resolve.
+// Paths: required fields + every level's topic ids must resolve. A *draft* path
+// may list topics that aren't written yet (warn) — it's under construction; a
+// *published* path must resolve every topic (error).
 for (const { pid, data } of parsedPaths) {
   for (const f of ["title", "summary", "levels"]) {
     if (data[f] === undefined) errors.push(`path ${pid}: missing "${f}"`);
   }
+  const draft = data.status === "draft";
   for (const lvl of data.levels ?? [])
     for (const tid of lvl.topics ?? [])
-      if (!ids.has(tid)) errors.push(`path ${pid}: topic "${tid}" (level ${lvl.level}) does not exist`);
+      if (!ids.has(tid)) {
+        const msg = `path ${pid}: topic "${tid}" (level ${lvl.level}) does not exist`;
+        if (draft) warnings.push(`${msg} — not written yet (draft path)`);
+        else errors.push(msg);
+      }
 }
 
 // Resources: resources/<pathId>.json — supplementary materials per path.
@@ -178,6 +186,10 @@ if (fs.existsSync(RES_DIR)) {
   }
 }
 
+if (warnings.length) {
+  console.warn(`⚠ ${warnings.length} warning(s):`);
+  for (const w of warnings) console.warn(`  - ${w}`);
+}
 if (errors.length) {
   console.error(`✗ content validation failed — ${errors.length} problem(s):`);
   for (const e of errors) console.error(`  - ${e}`);
