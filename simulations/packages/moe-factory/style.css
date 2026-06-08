@@ -1,0 +1,169 @@
+/* Mirrors the LMS design tokens (docs/12) so the sim matches the active theme. */
+:root {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-contrast: #ffffff;
+  --accent: #0d9488;
+  --danger: #dc2626;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a;
+    --fg: #e5e7eb;
+    --muted: #9ca3af;
+    --surface: #242424;
+    --border: #2e2e2e;
+    --primary: #60a5fa;
+    --primary-contrast: #0b1220;
+    --accent: #2dd4bf;
+    --danger: #f87171;
+  }
+}
+[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-contrast: #ffffff;
+  --accent: #0d9488;
+  --danger: #dc2626;
+}
+[data-theme="dark"] {
+  --bg: #1a1a1a;
+  --fg: #e5e7eb;
+  --muted: #9ca3af;
+  --surface: #242424;
+  --border: #2e2e2e;
+  --primary: #60a5fa;
+  --primary-contrast: #0b1220;
+  --accent: #2dd4bf;
+  --danger: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+#app {
+  padding: 16px;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+button {
+  font: inherit;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+}
+button.primary {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border-color: var(--primary);
+}
+button.secondary {
+  background: var(--surface);
+}
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.modes {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.modes button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 12px;
+  color: var(--muted);
+}
+.modes button.active {
+  background: var(--primary);
+  color: var(--primary-contrast);
+}
+.readout {
+  min-height: 2.6em;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.readout .good {
+  color: var(--accent);
+  font-weight: 600;
+}
+.experts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 8px;
+}
+.expert {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: background 120ms, border-color 120ms, opacity 120ms;
+}
+.expert .ename {
+  font-weight: 700;
+  font-size: 14px;
+}
+.expert .score {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-height: 1em;
+}
+.expert.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.expert.on .score {
+  color: rgba(255, 255, 255, 0.85);
+}
+.expert.off {
+  opacity: 0.45;
+}
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.legend {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}

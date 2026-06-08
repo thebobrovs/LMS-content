@@ -38,12 +38,11 @@ model instead keeps many specialized sub-networks ("experts") and a small
 **gating network** that routes each token to just the top-k of them. You get the
 capability of a huge model at the cost of a small one — **sparse activation**.
 
-The simulation below is a working MoE "factory": inject tokens, switch between
-Top-1, Top-2, and Dense routing, and watch how many experts wake up, how compute
-overhead and latency change, and how the gating weights are computed. Complete
-the three quests to see the full trade-off.
+The simulation below routes tokens through a gating network. Switch between
+Top-1, Top-2, and Dense, route a few tokens, and watch how many of the experts
+actually run — and how that changes the compute per token.
 
-<Simulation id="moe-factory" height={1200} />
+<Simulation id="moe-factory" />
 
 <Callout type="note">
 Notice the trade-off as you switch modes: Top-1 is cheapest (one expert), Top-2
