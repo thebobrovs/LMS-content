@@ -12,38 +12,46 @@ sets it up and interprets it. Make it small, focused, and genuinely interactive.
 
 ## The design standard (match these — they are the house style)
 
-Exemplars to copy the level and look from: **`moe-factory`** (routing → % compute),
-**`consistent-hash-ring`** (remap fraction), **`systolic-array`** (matmul
-wavefront), **`lru-cache`** (eviction). New sims must look and behave like these.
+The richness exemplar is **`systolic-array`** — a real visualization (weight grid
++ streaming activations + incoming queue) with live metrics (cycle, utilization),
+Step / Auto / Reset, and a short event log. Other exemplars: **`moe-factory`**
+(routing → % compute), **`consistent-hash-ring`** (remap fraction), **`lru-cache`**
+(eviction). New sims should match this level and look.
 
 1. **One concept, one checkpoint.** A sim teaches a *single* idea and fires
    exactly one `observe-*` checkpoint the moment the learner sees the key insight.
    **No quest chains, no score, no "Completed!" modal, no game.** (We removed those
    on purpose.)
-2. **Compact — no long scrolling.** The whole sim should be visible at a glance,
-   ~**250–480px** tall. After each render, report height once:
-   `requestAnimationFrame(() => sim.resize(document.body.scrollHeight + 8))`.
-   It is **not** a full-screen dashboard.
-3. **On-theme, plain CSS only.** Copy the token block from
+2. **Aim high, then strip the cruft.** Be genuinely rich — a real visualization,
+   live metrics, Step/Auto/Reset, brief narration; a real instrument, not a toy.
+   The thing we *don't* want isn't ambition, it's cruft: off-brand themes, CDN
+   frameworks, quest games, and runaway height. Pure explanation/comparison
+   belongs in the **lesson prose**, not padded into the sim.
+3. **Focused & self-sizing.** One interactive idea; the sim **grows to its
+   content** via `requestAnimationFrame(() => sim.resize(document.body.scrollHeight + 8))`
+   after every render — no clipping, no runaway scroll. It's an **embed**, not a
+   page: no site chrome (header/sticky nav), no unrelated panels.
+4. **On-theme, plain CSS only.** Copy the token block from
    [`template/style.css`](template/style.css) and apply the host `theme` via
    `document.documentElement.dataset.theme`. **No CSS frameworks or CDNs**
    (no Tailwind Play, no MathJax unless math is truly essential and vendored),
    **no off-brand palettes** — it must read correctly in light *and* dark.
-4. **A measurable readout.** Show one live line that makes the trade-off concrete
+5. **A measurable readout.** Show one live line that makes the trade-off concrete
    (% compute, remap fraction, hit rate, cycle count). This is the takeaway in
-   numbers — keep it to a line, not a telemetry panel.
-5. **Standard anatomy, top→bottom:** `controls` → visualization → `readout`
-   (the result) → one-line `legend`.
-6. **Deterministic core.** Derive behavior from inputs/props (e.g. a small hash),
+   numbers — keep it to a line, not a sprawling telemetry panel.
+6. **Standard anatomy, top→bottom:** `controls` → visualization → `readout`
+   (the result) → optional short log → one-line `legend`.
+7. **Deterministic core.** Derive behavior from inputs/props (e.g. a small hash),
    not runtime randomness, so results are reproducible and explainable.
-7. **Interaction & a11y.** One primary action + a few controls + **Reset**;
+8. **Interaction & a11y.** One primary action + a few controls + **Reset**;
    keyboard-operable; always-visible focus ring; honor `reducedMotion` (no
    essential motion-only cue).
 
 ### Design checklist (must pass before promoting)
 
 - [ ] One concept; one `observe-*` checkpoint; no quests/score/modal.
-- [ ] Compact, no long scroll; resizes to its content.
+- [ ] Rich enough to be an instrument (viz + live metrics + Step/Auto/Reset) — see `systolic-array`.
+- [ ] Self-sizing (grows to content via `sim.resize`); no clipping or runaway scroll; no page chrome.
 - [ ] Token theme (copied block); correct in light + dark; respects reduced motion.
 - [ ] Plain HTML/CSS/JS — no CSS framework or CDN.
 - [ ] A measurable readout that states the takeaway.
