@@ -1,0 +1,188 @@
+/* Mirrors the LMS design tokens (docs/12) so the sim matches the active theme. */
+:root {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-contrast: #ffffff;
+  --accent: #0d9488;
+  --danger: #dc2626;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a;
+    --fg: #e5e7eb;
+    --muted: #9ca3af;
+    --surface: #242424;
+    --border: #2e2e2e;
+    --primary: #60a5fa;
+    --primary-contrast: #0b1220;
+    --accent: #2dd4bf;
+    --danger: #f87171;
+  }
+}
+[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-contrast: #ffffff;
+  --accent: #0d9488;
+  --danger: #dc2626;
+}
+[data-theme="dark"] {
+  --bg: #1a1a1a;
+  --fg: #e5e7eb;
+  --muted: #9ca3af;
+  --surface: #242424;
+  --border: #2e2e2e;
+  --primary: #60a5fa;
+  --primary-contrast: #0b1220;
+  --accent: #2dd4bf;
+  --danger: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+#app {
+  padding: 16px;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+button {
+  font: inherit;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+}
+button.primary {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border-color: var(--primary);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.cyc {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.array-label,
+.mat-name {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.ag-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+table {
+  border-collapse: collapse;
+}
+.mat td {
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  border: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--muted);
+}
+.mat td.lit {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border-color: var(--primary);
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.cell {
+  width: 64px;
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: background 120ms, border-color 120ms;
+}
+.cell .acc {
+  font-weight: 700;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.cell .term {
+  font-size: 11px;
+  color: var(--primary-contrast);
+}
+.cell.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.cell.on .term {
+  color: rgba(255, 255, 255, 0.9);
+}
+.cell.done {
+  border-color: var(--accent);
+}
+.readout {
+  min-height: 2.6em;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.readout .good {
+  color: var(--accent);
+  font-weight: 600;
+}
+.legend {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
