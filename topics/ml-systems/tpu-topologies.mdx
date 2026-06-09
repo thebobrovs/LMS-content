@@ -1,6 +1,6 @@
 ---
-title: TPU v5p Topology
-summary: How TPU v5p chips wire into a 3D torus, scale from a chip to an 8,960-chip pod, and why the shape you pick changes training throughput.
+title: TPU Topologies — the two networks & the shapes
+summary: The two networks (ICI vs DCN) and the shapes TPU chips form — 2D/3D torus, twisted torus, and Boardfly — across generations, and why the shape you rent changes throughput.
 tags: [ml-systems, hardware, parallelism]
 difficulty: advanced
 estimatedMinutes: 18
@@ -51,11 +51,46 @@ status: published
 
 ## The one-line summary
 
-A TPU v5p pod is **8,960 chips wired into a 3D torus**. Each chip talks to six
-neighbours over **ICI** (Inter-Chip Interconnect); the grid wraps around at its
-edges so there are no "ends," which keeps any two chips a short hop apart. You
-rent a **slice** of that torus and choose its shape to match how you split your
-model.
+A TPU Pod wires chips into a **torus** over **ICI** (Inter-Chip Interconnect) — the
+grid wraps at its edges so there are no "ends," keeping any two chips a short hop
+apart. You rent a **slice** of that torus and choose its **shape** to match how you
+split your model. The shape varies by generation (a TPU v5p Pod is 8,960 chips in a
+**3D torus**), and it's a real performance lever — because shape sets the network
+*diameter*, which sets how fast your collectives run.
+
+## The shapes, across generations
+
+`v{gen}{variant}` names the chip, not the network: **`e` = efficiency**, **`p` =
+performance** (the 8th gen renamed these to **`t`/`i`**, training/inference). The
+*topology* spans generations, and each new shape broke a scaling wall:
+
+- **2D torus** — v5e / v6e (Trillium): cheapest to wire, fine for smaller pods.
+- **3D torus** — v4 / v5p / 8t: half the diameter of a 2D torus at the same chip
+  count; **v4 added OCS** to reconfigure it and route around dead chips.
+- **Boardfly** — 8i: an optical hierarchy that cuts diameter ~56% (≈7 hops across
+  1,024 chips vs 16 on a 3D torus), for low-latency inference collectives.
+
+Compare their **network diameter** (worst-case hops) at the same chip count:
+
+<Simulation id="tpu-topology-explorer" height={420} />
+
+<Callout type="note">
+**The twisted torus is a free win.** Twisting an asymmetric slice (e.g. `4×4×8`) so
+it becomes effectively symmetric raises **bisection bandwidth by up to ~70%** over a
+plain torus — a big lever for global all-to-all and all-reduce traffic, at no extra
+hardware.
+</Callout>
+
+### One distinction infra engineers conflate
+
+- **Single-host slice** — one TPU VM (small slices fit on one host).
+- **Multi-host slice** — *several* TPU VMs whose chips are wired together by **ICI**
+  (still inside one Pod).
+- **<Term id="multislice">Multislice</Term>** — *several slices* joined over the
+  slower **DCN**.
+
+ICI is a physical chip-to-chip link; crossing slices drops you onto the DCN. Knowing
+which one your traffic rides is the whole game.
 
 ## The hierarchy: chip → host → cube → slice → pod → Multislice
 

@@ -1,0 +1,9 @@
+{
+  "id": "tpu-topology-explorer",
+  "title": "TPU topology explorer",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-topology", "hint": "Compare the network diameter of the 2D torus, 3D torus, and Boardfly at the same chip count — see how Boardfly cuts the worst-case hops." }
+  ]
+}

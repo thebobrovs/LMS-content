@@ -14,13 +14,13 @@
   },
   {
     "type": "prompt",
-    "topic": "ml-systems/tpu-v5p-topology",
+    "topic": "ml-systems/tpu-topologies",
     "title": "Map a model onto a TPU slice",
     "prompt": "Given a transformer with 64 layers and a TPU v5p slice of shape 8x8x16, propose a sensible split across data, tensor, and pipeline parallelism. Say which torus axis you'd assign to each dimension and why, then estimate where the first bottleneck appears."
   },
   {
     "type": "link",
-    "topic": "ml-systems/tpu-v5p-topology",
+    "topic": "ml-systems/tpu-topologies",
     "title": "TPU v5p documentation",
     "url": "https://cloud.google.com/tpu/docs/v5p",
     "note": "Official specs for ICI, slices, and Multislice."
