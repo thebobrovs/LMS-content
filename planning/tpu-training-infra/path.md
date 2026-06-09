@@ -42,7 +42,7 @@ blueprint-first: this doc → a plan per topic → topic by topic, signing off e
 | 1.2 | **`tpu-evolution-bottlenecks`** | **"Chasing the bottleneck": V1→8th gen, each generation a fix for what broke the last at scale (compute → memory → thermal → network → workload). Liquid cooling (v3), OCS (v4), the 8t/8i split** | — | interactive timeline + `<Steps>` | planned |
 | 1.3 | `tpu-chip-systolic-array` | "The silicon": data streams through the systolic array in bf16 on a diagonal wavefront, reusing inputs; arithmetic intensity, the Padding Trap, FP4 | Arithmetic-intensity + padding calculator | sims `systolic-array` + `arithmetic-intensity-calculator` (**sim**) | on staging |
 | 1.4 | **`tpu-topologies`** *(rename from `tpu-v5p-topology`)* | ICI vs DCN; 2D torus (v5e/v6e) vs 3D torus (v4/v5p/8t) vs **Boardfly (8i)** + OCS; shape dictates network diameter; the `e/p → t/i` naming | — | **sim `tpu-topology-explorer`** (2D/3D/Boardfly toggle) | published → generalizing |
-| 1.5 | `tpu-provisioning-vm` | Execute on the host attached to the TPU; provision via GKE + Kueue + DWS Flex-start; MTU/capacity config | (provision a TPU VM + run on the host) | figure + lab (**codelab**) | planned |
+| 1.5 | `tpu-provisioning-vm` | Execute on the host attached to the TPU; provision via GKE + Kueue + DWS Flex-start; MTU/capacity config; single- vs multi-host | provision a TPU VM + run on the host (**codelab**) | figure + sim `capacity-shape-selector` + lab (**codelab**) | planned |
 
 ### L200 — Single-Slice Execution & The "No Black Box" Mandate
 *Run on a single slice (up to one Pod), demystify the compiler, never starve the TPUs for data.*
