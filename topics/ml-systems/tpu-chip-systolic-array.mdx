@@ -24,7 +24,7 @@ flashcards:
   - front: The Padding Trap
     back: A dimension that doesn't align to the MXU tile (128, or 256 on v6e/v7) or the memory lanes (multiples of 8/128) gets silently zero-padded by XLA. Padded zeros waste compute and on-chip memory — a leading cause of "mysterious" OOMs on a supposedly compute-bound job. Align your shapes.
   - front: FP4 (native 4-bit)
-    back: Native on TPU 8t — halving the bytes per parameter versus bf16 roughly doubles MXU throughput. It's the extreme of the arithmetic-intensity lever: less memory traffic per FLOP.
+    back: Native on TPU 8t — halving the bytes per parameter versus bf16 roughly doubles MXU throughput. It's the extreme of the arithmetic-intensity lever — less memory traffic per FLOP.
 quiz:
   - question: Why is a general-purpose CPU slow at large matrix multiplies compared with a systolic array?
     choices:
