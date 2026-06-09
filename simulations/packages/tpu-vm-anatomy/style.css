@@ -1,0 +1,99 @@
+/* TPU VM anatomy — on LMS design tokens (docs/12), theme-aware, no CDNs. */
+:root {
+  --bg: #ffffff; --fg: #0f172a; --muted: #64748b; --surface: #f1f5f9;
+  --panel: #ffffff; --border: #e2e8f0; --inset: #f8fafc;
+  --primary: #2563eb; --primary-contrast: #ffffff;
+  --g1: #4285f4; --g2: #34a853; --accent: #0d9488; --weight: #7c3aed;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a; --fg: #f8fafc; --muted: #94a3b8; --surface: #1e293b;
+    --panel: #1e293b; --border: #334155; --inset: #0f172a;
+    --primary: #3b82f6; --primary-contrast: #ffffff;
+    --g1: #4285f4; --g2: #34a853; --accent: #2dd4bf; --weight: #a78bfa;
+  }
+}
+[data-theme="light"] {
+  --bg: #ffffff; --fg: #0f172a; --muted: #64748b; --surface: #f1f5f9;
+  --panel: #ffffff; --border: #e2e8f0; --inset: #f8fafc;
+  --primary: #2563eb; --primary-contrast: #ffffff;
+  --g1: #4285f4; --g2: #34a853; --accent: #0d9488; --weight: #7c3aed;
+}
+[data-theme="dark"] {
+  --bg: #0f172a; --fg: #f8fafc; --muted: #94a3b8; --surface: #1e293b;
+  --panel: #1e293b; --border: #334155; --inset: #0f172a;
+  --primary: #3b82f6; --primary-contrast: #ffffff;
+  --g1: #4285f4; --g2: #34a853; --accent: #2dd4bf; --weight: #a78bfa;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+#app { padding: 16px; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+.stage { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.part { cursor: pointer; transition: box-shadow .15s, border-color .15s, transform .15s; }
+.part.sel { box-shadow: 0 0 0 2px var(--primary), 0 0 18px color-mix(in srgb, var(--primary) 30%, transparent); }
+
+.bt { font-weight: 700; font-size: 14px; }
+.bs { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* host */
+#p-host {
+  flex: none; width: 110px; min-height: 92px; display: flex; flex-direction: column; justify-content: center;
+  padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); text-align: center;
+}
+/* pcie connector */
+#p-pcie { flex: none; display: grid; place-items: center; min-width: 46px; height: 26px; font-size: 10px; font-weight: 700;
+  color: var(--muted); border: 1px dashed var(--border); border-radius: 6px; background: var(--inset); }
+
+/* chip — gradient board */
+.chip {
+  flex: 1 1 360px; min-width: 320px; position: relative; padding: 28px 16px 16px;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--g1) 22%, var(--panel)), color-mix(in srgb, var(--g2) 22%, var(--panel)));
+}
+.chip-tab {
+  position: absolute; top: -1px; left: 16px; transform: translateY(-50%);
+  font: inherit; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer;
+}
+.chip-tab.sel { background: var(--primary); color: var(--primary-contrast); border-color: var(--primary); }
+
+#p-tc { padding: 12px; border-radius: 12px; border: 1.5px solid color-mix(in srgb, var(--primary) 45%, var(--border)); background: color-mix(in srgb, var(--panel) 86%, transparent); }
+.tc-label { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.tc-grid { display: flex; gap: 10px; align-items: stretch; }
+#p-mxu {
+  flex: 1 1 auto; min-height: 78px; display: flex; flex-direction: column; justify-content: center; padding: 12px;
+  border-radius: 10px; text-align: center; color: #fff;
+  background: linear-gradient(135deg, var(--g1), var(--accent));
+}
+#p-mxu .bs { color: rgba(255,255,255,.85); }
+.units { flex: none; width: 96px; display: flex; flex-direction: column; gap: 8px; }
+#p-vpu, #p-scalar { flex: 1; display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+#p-hbm { margin-top: 12px; display: grid; place-items: center; height: 34px; font-size: 12px; font-weight: 700;
+  color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border)); border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
+
+/* ici */
+#p-ici { flex: none; width: 96px; min-height: 70px; display: flex; flex-direction: column; justify-content: center;
+  padding: 10px; text-align: center; border: 1px dashed color-mix(in srgb, var(--weight) 50%, var(--border));
+  border-radius: 12px; background: color-mix(in srgb, var(--weight) 8%, var(--panel)); color: var(--weight); }
+#p-ici .bs { color: var(--muted); }
+
+/* detail card */
+.detail { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--primary);
+  border-radius: 10px; background: var(--panel); }
+.dname { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+.drole { font-size: 14px; line-height: 1.5; color: var(--fg); }
+.dspec { margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 560px) {
+  .stage { flex-direction: column; align-items: stretch; }
+  #p-host, #p-ici { width: auto; }
+  #p-pcie { width: auto; }
+}

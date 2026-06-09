@@ -1,0 +1,12 @@
+{
+  "id": "tpu-vm-anatomy",
+  "title": "TPU VM anatomy",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    {
+      "id": "observe-anatomy",
+      "hint": "Click into the MXU — the matrix unit inside the TensorCore — to find where a TPU actually runs your matmuls."
+    }
+  ]
+}

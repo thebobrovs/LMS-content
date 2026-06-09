@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TPU VM anatomy</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="TPU VM anatomy explorer"></main>
+    <!-- Classic (non-module) scripts: the sim runs in a sandboxed, opaque-origin
+         iframe; ES modules would be CORS-blocked, so the SDK exposes a global
+         createSim and these load as classic scripts. -->
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

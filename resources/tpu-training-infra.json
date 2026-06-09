@@ -1,6 +1,20 @@
 [
   {
     "type": "link",
+    "topic": "ml-systems/why-tpus",
+    "title": "Cloud TPU system architecture",
+    "url": "https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm",
+    "note": "The authoritative reference: TensorCore/MXU, the TPU VM model, chips → slices → Pods, and generations."
+  },
+  {
+    "type": "link",
+    "topic": "ml-systems/why-tpus",
+    "title": "Run a calculation on a TPU VM with JAX",
+    "url": "https://docs.cloud.google.com/tpu/docs/run-calculation-jax",
+    "note": "Provision a TPU VM, SSH in, and run your first JAX program on the chip."
+  },
+  {
+    "type": "link",
     "topic": "ml-systems/tpu-chip-systolic-array",
     "title": "JAX quickstart — run your first matmul",
     "url": "https://docs.jax.dev/en/latest/quickstart.html",

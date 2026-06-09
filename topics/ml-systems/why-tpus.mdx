@@ -1,0 +1,144 @@
+---
+title: Why TPUs? Cloud TPUs & the TPU VM
+summary: Why AI needs purpose-built accelerators, what a Cloud TPU actually is (an ML ASIC you reach through a host VM), and how single chips ladder up into Pods.
+tags: [ml-systems, hardware, accelerators]
+difficulty: beginner
+estimatedMinutes: 11
+level: 100
+prerequisites: []
+relatedTo: [ml-systems/tpu-chip-systolic-array, ml-systems/tpu-v5p-topology]
+videos: []
+flashcards:
+  - front: TPU
+    back: Tensor Processing Unit — an ASIC (application-specific integrated circuit) Google designed to accelerate the matrix math in neural networks. It is not general-purpose; it can't run arbitrary applications.
+  - front: TensorCore
+    back: The compute core of a TPU chip — a matrix unit (MXU) for matmuls, plus a vector unit (activations, softmax) and a scalar unit (control flow, addressing).
+  - front: TPU VM
+    back: The Linux host VM physically attached to the TPU chips. You SSH in (root), run your JAX / PyTorch-XLA code there, and it dispatches the heavy compute to the TPU — no network hop to the accelerator.
+  - front: The scale ladder
+    back: chip (1+ TensorCores) → host (the VM) → slice → Pod (chips wired by ICI into a 3D torus) → Multislice (slices joined over the slower DCN).
+  - front: SparseCore
+    back: A dedicated unit (introduced on v4; present on v5p, v6e, v7) that accelerates very large embedding lookups — the heavy part of recommendation/ranking models and mixture-of-experts routing.
+  - front: Choosing a generation
+    back: Roughly — v5e and v6e (Trillium) for cost-efficient inference; v5p for high-performance training; v6e/v7 widen the MXU to 256×256. Match the chip to training vs serving and to model size.
+quiz:
+  - question: What kind of processor is a TPU?
+    choices:
+      - A general-purpose CPU with extra cores
+      - An ASIC purpose-built for the matrix math in neural networks
+      - A storage controller for training data
+    answer: 1
+    explanation: A TPU is an application-specific integrated circuit — designed for one job (matmul-heavy ML) and unable to run general-purpose applications.
+  - question: How do you run code on a Cloud TPU?
+    choices:
+      - You SSH into a host VM physically attached to the chips and run your program there
+      - You send each operation over the network to a remote accelerator service
+      - You flash a binary directly onto the chip
+    answer: 0
+    explanation: The TPU VM model gives you root on a Linux host wired to the chips; your JAX/PyTorch-XLA program runs on the host and launches onto the TPU over PCIe — no per-op network hop.
+  - question: In the scale ladder, what wires chips together inside a Pod?
+    choices:
+      - The Data Center Network (DCN)
+      - PCIe
+      - The Inter-Chip Interconnect (ICI)
+    answer: 2
+    explanation: ICI links chips into a slice and Pod (a 3D torus). Only crossing between slices (Multislice) falls back to the slower DCN.
+status: draft
+---
+
+## The one-line summary
+
+A TPU is a chip Google built to do one thing fast: the **matrix math** at the
+heart of neural networks. You never touch the chip directly — you SSH into a
+**host VM** that's wired to it, run your JAX or PyTorch code there, and it
+dispatches the heavy work to the TPU.
+
+## Why build special hardware at all?
+
+Modern AI — both training and inference — is dominated by **matrix multiply at
+enormous scale**. A general-purpose CPU spends most of its time shuttling operands
+in and out of memory rather than computing (the *memory wall*). GPUs help, but
+Google went further and built an <Term id="asic">ASIC</Term> tuned for exactly
+this workload. The payoff is more matmul **throughput per watt and per dollar** —
+which, at the scale of a flagship model, is the whole game.
+
+You'll see *how* it wins in the next topic (the systolic array). Here, the goal is
+the mental model: what a TPU is, and how you reach it.
+
+## What a TPU is
+
+A TPU is an <Term id="asic">ASIC</Term> — an application-specific integrated
+circuit — **purpose-built for ML**, so it cannot run general-purpose code. Its
+compute core is the <Term id="tensorcore">TensorCore</Term>:
+
+- the <Term id="mxu">MXU</Term> (a systolic array — 128×128, so 16,384
+  multiply-accumulates per cycle; bf16 in, fp32 out) where matmuls run,
+- a <Term id="vpu">vector unit</Term> for activations, softmax, and elementwise
+  math, and
+- a scalar unit for control flow and addressing.
+
+Memory is <Term id="hbm">HBM</Term>, and chips talk to their neighbours over
+<Term id="ici">ICI</Term>. Use the interactive cutaway below to click each part
+and read what it does — you'll come back to it in the exercises:
+
+<Simulation id="tpu-vm-anatomy" height={460} />
+
+## How you actually use one: the TPU VM
+
+You don't rent a bare chip — you get a **Linux host VM physically attached** to the
+chips. You <Term id="tpu vm">SSH in</Term> with root access, install JAX or
+PyTorch-XLA, and run your program. It launches onto the TPU over PCIe and the
+compute stays on-chip — **there is no per-operation network hop** to the
+accelerator, because the host *is* the accelerator's host. (That's why later
+orchestration is about scheduling these host+chip units, not about a remote API.)
+
+## From one chip to tens of thousands
+
+A TPU's power comes from ganging chips together. The ladder:
+
+- **Chip** — one or more TensorCores plus HBM.
+- **Host** — the VM you SSH into; it drives the chips attached to it.
+- **Slice** — a block of chips wired by <Term id="ici">ICI</Term>.
+- **Pod** — a contiguous set of chips on one ICI network, forming a 3D torus.
+- **<Term id="multislice">Multislice</Term>** — multiple slices joined over the
+  slower Data-Center Network (DCN) for jobs bigger than one Pod.
+
+Almost everything later in this path is about climbing this ladder efficiently —
+the topology topic makes the Pod concrete.
+
+## Which TPU, and when
+
+Generations trade off compute, memory, and topology:
+
+- **v5e** and **v6e (Trillium)** — cost-efficient, tuned for **inference** and
+  smaller training runs.
+- **v5p** — high-performance **training**, with <Term id="sparsecore">SparseCores</Term>.
+- **v6e / v7 (Ironwood)** — widen the MXU to **256×256** (4× the MACs per cycle).
+
+<Term id="sparsecore">SparseCore</Term> accelerates the giant embedding lookups in
+recommendation/ranking and mixture-of-experts routing. Rule of thumb: dense
+transformer **training** → v5p / Trillium; **serving** → v5e / v6e.
+
+## Why this matters
+
+This is the picture the whole path builds on: **how the chip computes** (the
+systolic array), **how chips scale** (ICI, the torus, Pods), and **how you feed
+and operate them** (the VM, orchestration, sharding). Keep the anatomy above in
+mind — every later topic zooms into one part of it.
+
+## Put it together
+
+<Steps>
+<Step title="Find where matmuls run">
+In the anatomy sim, click the **MXU** and confirm that's where matrix multiplies
+happen — and that **HBM** is what keeps it fed.
+</Step>
+<Step title="Trace your code's path">
+Click **Host VM**, then **PCIe**, then the **chip**. Explain in one sentence why
+there's no network hop between your program and the accelerator.
+</Step>
+<Step title="Pick a generation">
+Say whether you'd reach for **v5e** or **v5p** to (a) serve a Gemma model and
+(b) pre-train a new LLM — and why.
+</Step>
+</Steps>

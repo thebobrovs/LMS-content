@@ -24,5 +24,25 @@
   },
   "weight-stationary": {
     "definition": "A systolic dataflow that loads weights into the array once and holds them put while activations stream through — maximising weight reuse."
+  },
+  "asic": {
+    "definition": "Application-Specific Integrated Circuit — a chip designed for one job. A TPU is an ASIC purpose-built for the matrix math in neural networks; it can't run general-purpose code."
+  },
+  "vpu": {
+    "definition": "Vector unit — the part of a TensorCore that handles non-matmul math (activations, softmax, normalization, elementwise ops), alongside the MXU and scalar unit."
+  },
+  "tpu vm": {
+    "definition": "The Linux host VM physically attached to the TPU chips. You SSH in with root access and run your JAX / PyTorch-XLA code; it dispatches the heavy compute to the TPU over PCIe.",
+    "href": "https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm",
+    "linkLabel": "TPU system architecture"
+  },
+  "ici": {
+    "definition": "Inter-Chip Interconnect — the high-bandwidth links wiring TPU chips into a slice and Pod (a 3D torus), bypassing the host network. Collective operations ride ICI."
+  },
+  "multislice": {
+    "definition": "Joining multiple slices/Pods over the slower Data-Center Network (DCN) for jobs bigger than one Pod — cross-slice traffic is far slower than ICI."
+  },
+  "sparsecore": {
+    "definition": "A dedicated TPU unit (introduced on v4; on v5p, v6e and v7) that accelerates very large embedding lookups — the heavy part of recommendation/ranking models and mixture-of-experts routing."
   }
 }
