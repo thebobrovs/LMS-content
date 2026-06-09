@@ -1,0 +1,9 @@
+{
+  "id": "capacity-shape-selector",
+  "title": "TPU capacity & shape selector",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-capacity", "hint": "Pick a slice and a need, and read off the recommended capacity mode and its trade-offs." }
+  ]
+}

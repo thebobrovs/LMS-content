@@ -1,0 +1,115 @@
+---
+title: Provisioning & the TPU VM
+summary: How you actually get TPUs and run on them — the TPU VM lifecycle, XPK → Kueue → DWS-Flex on GKE, single- vs multi-host slices, the DCN networking a multi-host job needs, and attaching storage.
+tags: [ml-systems, hardware, infrastructure]
+difficulty: intermediate
+estimatedMinutes: 13
+level: 100
+prerequisites: []
+relatedTo: [ml-systems/why-tpus, ml-systems/tpu-topologies]
+videos: []
+flashcards:
+  - front: How you run a multi-host TPU job
+    back: With XPK (Accelerated Processing Kit), Google's CLI — XPK → Kueue → GKE provisions DWS Flex-start nodes. You don't hand-submit raw Kubernetes pods for multi-host slices.
+  - front: DWS Flex-start
+    back: Dynamic Workload Scheduler, Flex-start mode — ephemeral, queued, low-cost capacity for bursty jobs. You wait in a queue, then get the slice for a bounded window. Contrast with reservation (committed, guaranteed) and Spot (cheapest, preemptible).
+  - front: Single-host vs multi-host slice
+    back: A single-host slice is one TPU VM (small slices fit on one host). A multi-host slice is several VMs whose chips are wired by ICI — and the host processes must rendezvous over the DCN.
+  - front: The networking a multi-host job needs (the trap)
+    back: MTU 8896 + VPC firewall rules for host-to-host traffic — this is the DCN/VPC, NOT ICI. ICI is the physical chip-to-chip link and never touches the VPC. Get this wrong and the hosts can't rendezvous.
+  - front: Storage attachment
+    back: A provisioned slice with no fast disk just starves. Attach high-throughput storage (Hyperdisk ML, Filestore, or Managed Lustre) — it's what your input pipeline reads from.
+quiz:
+  - question: You want a low-cost slice for a short, bursty experiment and don't want it preempted mid-run. Which capacity mode?
+    choices:
+      - Spot — cheapest, but it can be preempted any time
+      - DWS Flex-start — ephemeral and queued, low cost, not preempted once it starts
+      - A 1-year reservation
+    answer: 1
+    explanation: DWS Flex-start fits bursty work — you queue for it, run in a bounded window at low cost, and aren't preempted mid-run. Spot is cheaper but preemptible; a reservation is for guaranteed long-running capacity.
+  - question: A multi-host TPU job won't rendezvous. The MTU 8896 / VPC firewall config you need is for which network?
+    choices:
+      - ICI — the chip-to-chip interconnect
+      - The DCN / VPC — host-to-host traffic between the TPU VMs
+      - PCIe
+    answer: 1
+    explanation: MTU 8896 and VPC firewall rules are for the DCN/VPC (host-to-host rendezvous, checkpointing, Multislice). ICI is a physical hardware link between chips and never touches the VPC.
+  - question: When you "provision a TPU," what do you actually get root access to?
+    choices:
+      - The bare TPU chip
+      - A host VM physically attached to the chips
+      - A remote API endpoint
+    answer: 1
+    explanation: You get a Linux host VM wired to the chips; your code runs on the host and dispatches to the TPU. There's no bare-chip access and no per-op network hop.
+status: draft
+---
+
+## The one-line summary
+
+Knowing *what* a TPU is (topic 1.1) isn't the same as *getting one and running on
+it*. In practice you submit a job with **<Term id="xpk">XPK</Term>**, which queues
+through **<Term id="kueue">Kueue</Term>** and provisions GKE nodes; you land on a
+host VM attached to the chips; you attach storage; and — the part people get wrong —
+you configure the **DCN** networking the hosts need. At scale, *capacity*, not
+concepts, is the wall you hit.
+
+## How you actually run a job
+
+You rarely hand-write Kubernetes for a multi-host slice. The real path is:
+
+> **XPK → Kueue → GKE provisions DWS Flex-start nodes → host VM(s) ↔ chips.**
+
+You request a slice (say `v6e-256`); <Term id="xpk">XPK</Term> drives
+<Term id="kueue">Kueue</Term> (quota, priority, gang-scheduling) which provisions the
+nodes; you get **root on the host VM(s)** physically attached to the chips, install
+JAX or PyTorch-XLA, and run.
+
+## The capacity wall
+
+At scale you can't always *get* the chips — so you choose a **capacity mode**:
+
+- **On-demand** — available now, full price.
+- **Reservation** — committed, guaranteed, never preempted (for long runs).
+- **Spot** — cheapest, but preemptible any time.
+- **<Term id="dws flex-start">DWS Flex-start</Term>** — ephemeral, **queued**, low
+  cost; not preempted once it starts (great for bursty experiments).
+
+Pick a slice and a need and read off the recommendation:
+
+<Simulation id="capacity-shape-selector" height={460} />
+
+## The networking trap (DCN, not ICI)
+
+A **multi-host** slice is several host VMs whose chips are wired by
+<Term id="ici">ICI</Term>. But the *host processes* must rendezvous — and that
+traffic rides the **<Term id="dcn">DCN</Term> (the VPC)**, not ICI.
+
+<Callout type="warning">
+**MTU 8896 and VPC firewall rules are DCN/host-to-host configuration — not ICI.**
+ICI is a physical chip-to-chip link and never touches the VPC. Get this wrong and
+your hosts can't rendezvous (the failure you'll debug in L200). Checkpointing to GCS
+and Multislice traffic also ride the DCN.
+</Callout>
+
+## Don't forget the disks
+
+A slice with no fast storage just starves. Attach high-throughput storage —
+**Hyperdisk ML**, Filestore, or Managed Lustre — so the chips stay fed. That disk is
+exactly what your input pipeline (L200) will read from.
+
+## Put it together
+
+<Steps>
+<Step title="Read the shape">
+In the selector, pick `v6e-256`. How many host VMs is that, and is it single- or
+multi-host? What networking does that imply?
+</Step>
+<Step title="Choose a capacity mode">
+For (a) a bursty 2-hour experiment and (b) a 3-week pre-training run, name the
+capacity mode you'd pick — and why.
+</Step>
+<Step title="Avoid the trap">
+A teammate says "open the ICI firewall so the hosts can talk." Correct them in one
+sentence.
+</Step>
+</Steps>

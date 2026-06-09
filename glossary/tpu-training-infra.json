@@ -39,6 +39,9 @@
   "ici": {
     "definition": "Inter-Chip Interconnect — the high-bandwidth links wiring TPU chips into a slice and Pod (a 3D torus), bypassing the host network. Collective operations ride ICI."
   },
+  "dcn": {
+    "definition": "Data-Center Network — the (slower than ICI) host-to-host network (the VPC) carrying cross-slice/Multislice traffic, host rendezvous, and checkpointing to GCS. MTU 8896 + firewall rules apply here, not to ICI."
+  },
   "multislice": {
     "definition": "Joining multiple slices/Pods over the slower Data-Center Network (DCN) for jobs bigger than one Pod — cross-slice traffic is far slower than ICI."
   },
@@ -76,5 +79,20 @@
   },
   "fp4": {
     "definition": "Native 4-bit floating point on TPU 8t — halves the bytes per parameter versus bf16, roughly doubling MXU throughput by cutting memory traffic per FLOP."
+  },
+  "xpk": {
+    "definition": "Accelerated Processing Kit — Google's CLI for orchestrating TPU workloads on GKE. The real entry point: XPK → Kueue → GKE provisions DWS Flex-start nodes. You don't hand-submit raw pods for multi-host slices."
+  },
+  "dws flex-start": {
+    "definition": "Dynamic Workload Scheduler, Flex-start mode — ephemeral, queued, low-cost capacity for bursty jobs; you wait in a queue, then get the slice for a bounded window."
+  },
+  "kueue": {
+    "definition": "Kubernetes-native job queueing on GKE — quota, priority, and gang-scheduling (all-or-nothing) for multi-host TPU slices."
+  },
+  "capacity mode": {
+    "definition": "How you acquire TPU capacity: on-demand, reservation (committed, guaranteed), Spot (cheapest, preemptible), or DWS Flex-start (ephemeral, queued). Match the mode to the workload."
+  },
+  "hyperdisk ml": {
+    "definition": "High-throughput attached storage for ML on GCP (alongside Filestore / Managed Lustre) — you attach it so the chips aren't data-starved; it's what the input pipeline reads from."
   }
 }
