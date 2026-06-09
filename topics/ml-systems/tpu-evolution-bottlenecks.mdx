@@ -82,6 +82,30 @@ at much better cost-efficiency. **<Term id="ironwood">Ironwood</Term> (v7 / TPU7
 Pod scale to **9,216 chips** — it ships in two pod sizes (**256** and **9,216**), so
 cite 9,216 only for the megascale config.
 
+## The numbers, side by side
+
+The "chasing the bottleneck" story is written into the spec sheet. Compare four
+recent generations — note how **Trillium (v6e)** jumps **4.7×** in compute over
+v5e, doubles HBM and its bandwidth, quadruples DCN, and finally brings
+<Term id="sparsecore">SparseCore</Term> to the efficiency line:
+
+| Chip spec | v5e | Trillium (v6e) | v4 | v5p |
+| --- | --- | --- | --- | --- |
+| Chips per pod | 256 | 256 | 4,096 | 8,960 |
+| bf16 TFLOP/s | 197 | 918 (4.7×) | 275 | 459 |
+| Int8 / FP8 TOP/s | 394 | 1,836 (4.7×) | N/A | 918 |
+| HBM per chip (GB) | 16 | 32 (2×) | 32 | 96 |
+| HBM bandwidth (GB/s) | 820 | 1,640 (2×) | 1,228 | 2,765 |
+| ICI BW/chip (GB/s, bi-dir.) | 400 | 800 (2×) | 600 | 1,200 |
+| DCN BW/chip (Gb/s) | 25 | 100 (4×) | 50 | 50 |
+| SparseCore (embedding offload) | No | Yes (new) | Yes | Yes |
+
+<Callout type="note">
+Source: Google Cloud TPU specifications. Multipliers in parentheses are **Trillium
+(v6e) vs v5e**. The 8th-gen **TPU 8t / 8i** continue this curve with far larger HBM
+(**216–288 GB**) and **native FP4** — see [Why TPUs?](/topics/ml-systems/why-tpus/).
+</Callout>
+
 ## The 8th generation: the workload split
 
 By the 8th gen, the designers hit a new kind of wall — **training and serving
