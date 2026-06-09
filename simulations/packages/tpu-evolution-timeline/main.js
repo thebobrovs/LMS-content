@@ -1,23 +1,26 @@
 // createSim is a global from sim-sdk.js (classic script). "Chasing the bottleneck":
-// step through TPU generations; each broke the wall that capped the last. The bar
-// shows the per-pod performance multiplier (log scale) where the source gives a
-// number. Theme-aware, SDK-wired, no CDNs. Deterministic.
+// a chip-styled stepper through TPU generations, each with the wall it hit and the
+// fix it shipped, plus a log-scale pod-performance chart (and the 8th-gen split).
+// Theme-aware, SDK-wired, no CDNs. Deterministic.
 const app = document.getElementById("app");
 
-// Figures per the TPU-evolution source doc (T-AITPU...): V2 = baseline.
 const GENS = [
-  { id: "v1", label: "V1", pod: null, bottleneck: "Inference on CPUs/GPUs was too slow and power-hungry.", fix: "A dedicated internal inference ASIC — matmul only.", note: "internal inference accelerator" },
-  { id: "v2", label: "V2", pod: 1, bottleneck: "A single chip couldn't train large models.", fix: "Distributed shared memory → the first multi-chip Pods; moved to training.", note: "baseline · 1×/chip · 1×/pod" },
-  { id: "v3", label: "V3", pod: 12, bottleneck: "Rising performance density broke air cooling.", fix: "Liquid cooling.", note: "≈3×/chip · 12×/pod" },
-  { id: "v4", label: "V4", pod: 100, bottleneck: "Pods grew too big and failure-prone for static copper wiring.", fix: "Optical Circuit Switches (OCS) — reconfigure slices and route around dead chips.", note: "≈6.6×/chip · 100×/pod" },
-  { id: "v5", label: "v5e / v5p", pod: 750, bottleneck: "One chip couldn't be both cheap and peak-performance.", fix: "Split variants: v5e (efficiency) and v5p (performance).", note: "v5p · 21×/chip · 750×/pod" },
-  { id: "v6e", label: "v6e", pod: null, bottleneck: "Cost-efficiency for inference and smaller training runs.", fix: "Trillium — ≈100× the performance of V2.", note: "Trillium" },
-  { id: "v7", label: "v7", pod: null, bottleneck: "Raw pod scale.", fix: "Ironwood (TPU7x) — ships in two pod sizes, 256 and 9,216 chips.", note: "Ironwood · up to 9,216 chips/pod" },
-  { id: "v8", label: "8th gen", pod: null, bottleneck: "Training and serving bottlenecks diverged too far for one chip.", fix: "Split the silicon: TPU 8t (training, SparseCore) vs TPU 8i (inference, CAE).", note: "8t / 8i workload split" },
+  { id: "v1", label: "V1", wall: "General-purpose CPUs and GPUs were too slow and power-hungry for Google's massive internal inference workloads.", fix: "Built a dedicated, matrix-multiply ASIC strictly for internal inference.", note: "Baseline · Inference only", podMult: null, isSplit: false },
+  { id: "v2", label: "V2", wall: "A single chip couldn't train large models efficiently; training needed massive synchronized memory.", fix: "Added distributed shared memory to create the first multi-chip Pods. The training era begins.", note: "1×/chip · 1×/pod", podMult: 1, isSplit: false },
+  { id: "v3", label: "V3", wall: "Rising compute density generated too much heat, breaking traditional air-cooled data centers.", fix: "Introduced liquid cooling directly to the racks — denser, hotter chips.", note: "≈3×/chip · 12×/pod", podMult: 12, isSplit: false },
+  { id: "v4", label: "V4", wall: "Pods grew too large; static copper wiring caused reliability issues and a network scaling wall.", fix: "Introduced Optical Circuit Switches (OCS) to reconfigure slices and route around dead chips.", note: "≈6.6×/chip · 100×/pod", podMult: 100, isSplit: false },
+  { id: "v5", label: "v5p", wall: "A single architecture couldn't deliver both peak performance and cost-efficiency.", fix: "Silicon split into variants — v5e (efficiency) and v5p (performance). v5p is tuned for 3D-torus training.", note: "21×/chip · 750×/pod", podMult: 750, isSplit: false },
+  { id: "v6e", label: "Trillium", wall: "Demand for extreme cost-efficiency for inference and mid-scale training.", fix: "Trillium (v6e) delivered next-gen efficiency, ≈100× the performance of V2 on a 2D torus.", note: "v6e · ≈100× of V2 (efficiency)", podMult: 100, isSplit: false },
+  { id: "v7", label: "Ironwood", wall: "Frontier models demanded unprecedented raw pod-scale limits.", fix: "A massive networking push lets the TPU 7x variant scale up to 9,216 chips per pod on a 3D torus.", note: "TPU 7x · up to 9,216 chips/pod", podMult: 2500, isSplit: false },
+  { id: "v8", label: "8th gen", wall: "Pre-training (throughput, embeddings) and serving (KV cache, low-latency collectives) bottlenecks fundamentally diverged. One chip couldn't do both.", fix: "Hard silicon split: TPU 8t (SparseCore, 3D torus) for training vs TPU 8i (CAE, Boardfly) for inference.", note: "8t (training) & 8i (inference)", podMult: 4000, isSplit: true },
 ];
-const MAXLOG = Math.log10(750);
 
-let i = 0; // selected index
+const ICONS = {
+  wall: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  fix: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+};
+
+let i = 0;
 let observed = false;
 
 function reportSize() { requestAnimationFrame(() => sim.resize(document.body.scrollHeight + 8)); }
@@ -25,7 +28,7 @@ function applyTheme(t) {
   if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
   else delete document.documentElement.dataset.theme;
 }
-function select(n) {
+function selectGen(n) {
   i = Math.max(0, Math.min(GENS.length - 1, n));
   if (i === GENS.length - 1 && !observed) { observed = true; sim.checkpoint("observe-evolution"); }
   sim.event("generation", { gen: GENS[i].id });
@@ -34,37 +37,72 @@ function select(n) {
 
 function render() {
   const g = GENS[i];
-  const bars = GENS.map((x, n) => {
-    const h = x.pod ? 16 + (Math.log10(x.pod) / MAXLOG) * 84 : x.id === "v1" ? 10 : 100;
-    const mega = !x.pod && x.id !== "v1";
-    return `<button class="gen ${n === i ? "sel" : ""}" data-i="${n}" role="tab" aria-selected="${n === i}" title="${x.label}">
-        <span class="bar ${mega ? "mega" : ""}" style="height:${h}%">${x.pod ? `<span class="mult">${x.pod}×</span>` : mega ? `<span class="mult">▲</span>` : ""}</span>
-        <span class="glabel">${x.label}</span>
-      </button>`;
+  const progressPct = (i / (GENS.length - 1)) * 100;
+  const MAX_LOG = Math.log10(5000);
+
+  const nodes = GENS.map((gen, n) => `
+    <button class="node ${n === i ? "active" : ""} ${n < i ? "past" : ""}" data-i="${n}" aria-label="Go to ${gen.label}">
+      <div class="node-chip"></div><div class="node-label">${gen.label}</div>
+    </button>`).join("");
+
+  const bars = GENS.map((gen, n) => {
+    const active = n === i;
+    const h = gen.podMult ? Math.max(8, (Math.log10(Math.max(1, gen.podMult)) / MAX_LOG) * 100) : 10;
+    const val = gen.podMult ? (gen.podMult >= 1000 ? "Max scale" : `${gen.podMult}×`) : "";
+    if (gen.isSplit) {
+      return `<div class="chart-bar-group">
+          <div class="split-container ${active ? "active" : ""}">
+            <div class="bar split-train" style="height:${h}%"><span class="split-label">8t</span></div>
+            <div class="bar split-infer" style="height:${h}%"><span class="split-label">8i</span></div>
+          </div>
+          <div class="bar-val" style="bottom:${h}%">${val}</div>
+        </div>`;
+    }
+    return `<div class="chart-bar-group">
+        <div class="bar ${active ? "active" : ""}" style="height:${h}%"></div>
+        <div class="bar-val" style="bottom:${h}%">${val}</div>
+      </div>`;
   }).join("");
 
   app.innerHTML = `
-    <div class="hint">Each generation broke the bottleneck that capped the last. Step through it — the bar is the per-pod performance multiplier (where the doc gives a number).</div>
-    <div class="axis-y">per-pod performance ↑</div>
-    <div class="chart" role="tablist">${bars}</div>
-
-    <div class="controls">
-      <button id="prev" class="secondary" ${i === 0 ? "disabled" : ""}>◀ Prev</button>
-      <button id="next" class="primary" ${i === GENS.length - 1 ? "disabled" : ""}>Step ▶</button>
-      <button id="reset" class="secondary">Reset</button>
-      <span class="pos">${i + 1} / ${GENS.length}</span>
+    <div class="timeline-track">
+      <div class="timeline-line"></div>
+      <div class="timeline-progress" style="width:${progressPct}%"></div>
+      ${nodes}
     </div>
 
-    <div class="detail" role="status">
-      <div class="dname">${g.label} <span class="dnote">${g.note}</span></div>
-      <div class="drow"><span class="k bad">Bottleneck</span> ${g.bottleneck}</div>
-      <div class="drow"><span class="k good">Fix</span> ${g.fix}</div>
+    <div class="story-container">
+      <div class="panel wall">
+        <div class="panel-header"><div class="panel-icon">${ICONS.wall}</div> The bottleneck</div>
+        <div class="panel-text animate-content">${g.wall}</div>
+      </div>
+      <div class="panel fix">
+        <div class="panel-header"><div class="panel-icon">${ICONS.fix}</div> The fix</div>
+        <div class="panel-text animate-content">${g.fix}</div>
+        <div class="panel-sub animate-content">&gt; ${g.note}</div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-header">
+        <div class="chart-title">Pod performance multiplier <span style="font-weight:400;color:var(--muted);font-size:12px;">(vs V2 baseline)</span></div>
+        <div class="chart-axis">Log scale ↑</div>
+      </div>
+      <div class="chart-area">${bars}</div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" data-act="reset">↺ Reset</button>
+      <div class="btn-group">
+        <button class="btn" data-act="prev" ${i === 0 ? "disabled" : ""}>← Prev</button>
+        <button class="btn primary" data-act="next" ${i === GENS.length - 1 ? "disabled" : ""}>Next gen →</button>
+      </div>
     </div>`;
 
-  app.querySelectorAll(".gen").forEach((el) => el.addEventListener("click", () => select(+el.getAttribute("data-i"))));
-  app.querySelector("#prev").addEventListener("click", () => select(i - 1));
-  app.querySelector("#next").addEventListener("click", () => select(i + 1));
-  app.querySelector("#reset").addEventListener("click", () => select(0));
+  app.querySelectorAll(".node").forEach((el) => el.addEventListener("click", () => selectGen(+el.getAttribute("data-i"))));
+  app.querySelector('[data-act="reset"]').addEventListener("click", () => selectGen(0));
+  app.querySelector('[data-act="prev"]').addEventListener("click", () => selectGen(i - 1));
+  app.querySelector('[data-act="next"]').addEventListener("click", () => selectGen(i + 1));
   reportSize();
 }
 
