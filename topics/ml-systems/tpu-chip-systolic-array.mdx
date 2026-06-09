@@ -54,7 +54,7 @@ quiz:
       - The extra weight overflowed fp32
     answer: 1
     explanation: The Padding Trap. Dimensions off the MXU tile (128/256) or memory lanes are silently zero-padded; the padding wastes compute and memory and can tip a job into OOM. Align shapes to the tile.
-status: draft
+status: published
 ---
 
 ## The one-line summary
