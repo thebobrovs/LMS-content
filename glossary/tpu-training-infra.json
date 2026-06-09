@@ -70,5 +70,11 @@
   },
   "ironwood": {
     "definition": "The 7th-gen TPU (v7 / TPU7x). Ships in two pod sizes — 256 and 9,216 chips; 9,216 is the megascale maximum."
+  },
+  "padding": {
+    "definition": "XLA zero-pads tensor dimensions up to the MXU tile (128, or 256 on v6e/v7) and the memory lanes (multiples of 8/128). Misaligned shapes carry wasted padded zeros — burning compute and on-chip memory, a common cause of surprise OOMs."
+  },
+  "fp4": {
+    "definition": "Native 4-bit floating point on TPU 8t — halves the bytes per parameter versus bf16, roughly doubling MXU throughput by cutting memory traffic per FLOP."
   }
 }

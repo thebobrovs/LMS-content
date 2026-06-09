@@ -21,6 +21,10 @@ flashcards:
     back: A 16-bit float with fp32's full 8-bit exponent range but fewer mantissa bits. Halves the bytes moved versus fp32 while staying stable for training — the default matmul type on TPUs (multiplied in bf16, accumulated in fp32).
   - front: Weight-stationary dataflow
     back: Load the weights into the array once and hold them put while activations stream through. Maximises weight reuse — the array reads each weight from memory a single time.
+  - front: The Padding Trap
+    back: A dimension that doesn't align to the MXU tile (128, or 256 on v6e/v7) or the memory lanes (multiples of 8/128) gets silently zero-padded by XLA. Padded zeros waste compute and on-chip memory — a leading cause of "mysterious" OOMs on a supposedly compute-bound job. Align your shapes.
+  - front: FP4 (native 4-bit)
+    back: Native on TPU 8t — halving the bytes per parameter versus bf16 roughly doubles MXU throughput. It's the extreme of the arithmetic-intensity lever: less memory traffic per FLOP.
 quiz:
   - question: Why is a general-purpose CPU slow at large matrix multiplies compared with a systolic array?
     choices:
@@ -43,6 +47,13 @@ quiz:
       - More HBM capacity
     answer: 1
     explanation: Reusing each byte across many MACs means the array isn't starved by memory bandwidth — it can run near its peak FLOP rate. Keeping intensity high is how you keep utilization (MFU) high later in this path.
+  - question: A "compute-bound" training job suddenly OOMs after you change a layer width from 4096 to 4097. Why?
+    choices:
+      - 4097 is a prime number and TPUs can't factor it
+      - XLA pads the dimension up to the MXU tile (e.g. 4097 → 4224), so every tile carries wasted zeros that inflate compute and on-chip memory
+      - The extra weight overflowed fp32
+    answer: 1
+    explanation: The Padding Trap. Dimensions off the MXU tile (128/256) or memory lanes are silently zero-padded; the padding wastes compute and memory and can tip a job into OOM. Align shapes to the tile.
 status: draft
 ---
 
@@ -134,10 +145,31 @@ array's reuse is what pushes you past the ridge. Two levers help:
   bandwidth, and the MXU runs at its bf16 rate.
 - **Batching** reuses the same stationary weights across many activations, so each
   weight read pays off over more MACs.
+- **Lower precision** goes further still — TPU 8t's native **FP4** halves the bytes
+  per parameter again versus bf16, roughly **doubling MXU throughput**. It's the
+  extreme of this lever: fewer bytes moved per FLOP.
 
 This is the mental model behind everything later in the path: **the array is only
 worth its TFLOPs when you keep it busy.** The utilization metric (MFU) you'll chase
 in L300 is just "how full was this array, really?"
+
+## The padding trap
+
+There's a catch that can turn a *compute-bound* job into a mysterious **OOM**: the
+MXU works in fixed **tiles** (128×128, or 256×256 on v6e/v7), and the memory system
+prefers multiples of 8 and 128. Any dimension that doesn't line up is **silently
+padded with zeros** by the XLA compiler — and those zeros are real: they burn
+compute and on-chip memory for nothing.
+
+Try it. Raise the batch to cross the ridge into compute-bound, then mis-size the
+feature dimension (e.g. `4096 → 4097`, or pick the 256-tile chip) and watch the
+padding waste — and the memory footprint — spike:
+
+<Simulation id="arithmetic-intensity-calculator" height={420} />
+
+The takeaway: **shapes are not free.** Align batch and feature dimensions to the MXU
+tile and the memory lanes, or you'll pay for zeros — sometimes with an out-of-memory
+crash on a job you were certain was compute-bound.
 
 ## Why it matters for ML
 
