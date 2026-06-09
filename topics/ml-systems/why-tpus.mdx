@@ -95,7 +95,8 @@ and read what it does — you'll come back to it in the exercises:
 ## How you actually use one: the TPU VM
 
 You don't rent a bare chip — you get a **Linux host VM physically attached** to the
-chips. You <Term id="tpu vm">SSH in</Term> with root access, install JAX or
+chips (on the 8th gen, an Arm-based **Axion** CPU, to keep data prep from
+bottlenecking the accelerator). You <Term id="tpu vm">SSH in</Term> with root access, install JAX or
 PyTorch-XLA, and run your program. It launches onto the TPU over PCIe and the
 compute stays on-chip — **there is no per-operation network hop** to the
 accelerator, because the host *is* the accelerator's host. (That's why later
@@ -108,7 +109,7 @@ A TPU's power comes from ganging chips together. The ladder:
 - **Chip** — one or more TensorCores plus HBM.
 - **Host** — the VM you SSH into; it drives the chips attached to it.
 - **Slice** — a block of chips wired by <Term id="ici">ICI</Term>.
-- **Pod** — a contiguous set of chips on one ICI network, forming a 3D torus.
+- **Pod** — a contiguous set of chips on one ICI network (a 3D torus for training, or a Boardfly topology for inference).
 - **<Term id="multislice">Multislice</Term>** — multiple slices joined over the
   slower Data-Center Network (DCN) for jobs bigger than one Pod.
 
@@ -121,8 +122,9 @@ The **8th generation** makes this topic's point loudest: it **splits the chip by
 workload** into two parts you choose between.
 
 - **TPU 8t — training.** Keeps <Term id="sparsecore">SparseCores</Term> (for
-  embeddings) plus an LLM decoder engine, on a 3D-torus network; built for
-  pre-training at superpod scale.
+  embeddings) plus an LLM decoder engine, on a 3D-torus network, with **native
+  FP4** (4-bit float) that doubles MXU throughput; built for pre-training at
+  superpod scale.
 - **TPU 8i — inference.** Swaps the SparseCores for a
   <Term id="cae">Collectives Acceleration Engine (CAE)</Term> (≈5× lower on-chip
   collective latency), carries **3× the on-chip SRAM** (384 MB) to hold the KV cache,
