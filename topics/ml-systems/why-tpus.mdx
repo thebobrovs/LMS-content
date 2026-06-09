@@ -113,6 +113,12 @@ A TPU's power comes from ganging chips together. The ladder:
 - **<Term id="multislice">Multislice</Term>** — multiple slices joined over the
   slower Data-Center Network (DCN) for jobs bigger than one Pod.
 
+<Figure
+  src="/media/tpu-scale-ladder.png"
+  alt="A five-rung ladder showing TPU hardware scaling up: (1) a single TPU chip, (2) a host server tray of several chips, (3) a slice of chips wired by ICI, (4) a pod — a contiguous set of chips on one ICI network as a 3D torus or Boardfly topology, and (5) Multislice — multiple pods joined over the slower Data-Center Network. Cyan links are ICI inside a pod; amber links are the DCN between pods."
+  caption="The scale ladder: chip → host → slice → pod → Multislice. Cyan is ICI (inside a pod); amber is the slower DCN (only between pods) — the boundary the topology topic makes concrete."
+/>
+
 Almost everything later in this path is about climbing this ladder efficiently —
 the topology topic makes the Pod concrete.
 
