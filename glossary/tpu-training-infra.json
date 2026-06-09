@@ -58,5 +58,17 @@
   },
   "boardfly": {
     "definition": "TPU 8i's network topology — a hierarchical optical-circuit-switched design with a ~7-hop diameter across 1,024 chips (vs 16 on a 3D torus), ~56% lower than a torus."
+  },
+  "liquid cooling": {
+    "definition": "Introduced at TPU V3 — the fix when rising performance density broke air cooling. Liquid carries heat away so chips can run hotter/denser."
+  },
+  "ocs": {
+    "definition": "Optical Circuit Switch — introduced at TPU V4. Reconfigurable optical links that reshape slices and route around failed chips; the only way to wire very large Pods reliably."
+  },
+  "trillium": {
+    "definition": "The TPU v6e generation — cost-efficient, tuned for inference and smaller training runs; ≈100× the performance of V2."
+  },
+  "ironwood": {
+    "definition": "The 7th-gen TPU (v7 / TPU7x). Ships in two pod sizes — 256 and 9,216 chips; 9,216 is the megascale maximum."
   }
 }

@@ -3,38 +3,33 @@ title: TPU Training Infrastructure
 summary: Design, orchestrate, scale, optimize, and operate Cloud TPU training clusters — from a single chip to tens of thousands — for flagship AI models.
 levels:
   - level: 100
-    title: Foundations — hardware & the AI stack
+    title: Foundational TPU architecture & provisioning
     topics:
       - ml-systems/why-tpus
+      - ml-systems/tpu-evolution-bottlenecks
       - ml-systems/tpu-chip-systolic-array
-      - ml-systems/tpu-slices-and-vms
       - ml-systems/tpu-v5p-topology
-      - ml-systems/jax-xla-stack
+      - ml-systems/tpu-provisioning-vm
   - level: 200
-    title: Single-slice training, serving & orchestration
+    title: Single-slice execution & the "no black box" mandate
     topics:
-      - ml-systems/orchestration-xpk-gke
+      - ml-systems/jax-xla-stack
       - ml-systems/spmd-multi-host
-      - ml-systems/input-pipeline
-      - ml-systems/training-frameworks
-      - ml-systems/checkpointing
-      - ml-systems/inference-serving
+      - ml-systems/data-pipeline-io
   - level: 300
-    title: Megascale — multi-slice, sharding & performance
+    title: Megascale & the "scale illusion" sandbox
     topics:
-      - ml-systems/multislice-megascale
-      - ml-systems/parallelism-and-sharding
       - ml-systems/collectives
+      - ml-systems/parallelism-and-sharding
+      - ml-systems/multislice-pathways
       - ml-systems/performance-mfu
-      - ml-systems/profiling-observability
   - level: 400
-    title: Resilience, custom kernels & co-design
+    title: Chaos engineering & bare-metal control
     topics:
       - ml-systems/fault-tolerance
+      - ml-systems/bare-metal-control
       - ml-systems/pallas-kernels
-      - ml-systems/inmemory-recovery
-      - ml-systems/inference-quantization
-      - ml-systems/hw-sw-codesign
+      - ml-systems/inference-serving
 status: draft
 ---
 
