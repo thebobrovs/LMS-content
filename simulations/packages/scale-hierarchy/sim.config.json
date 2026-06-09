@@ -1,12 +1,9 @@
 {
   "id": "scale-hierarchy",
-  "title": "TPU v5p scale hierarchy",
-  "version": "1.0.0",
+  "title": "TPU scale hierarchy",
+  "version": "2.0.0",
   "props": {},
   "checkpoints": [
-    {
-      "id": "reach-multislice",
-      "hint": "Step all the way up the hierarchy to Multislice to see where ICI ends and the Data Center Network (DCN) takes over."
-    }
+    { "id": "observe-multislice", "hint": "Scale up through every rung — chip → host → cube → slice → pod → Multislice — and watch the network change from copper to optical ICI to the cross-pod DCN." }
   ]
 }
