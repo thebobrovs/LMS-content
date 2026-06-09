@@ -1,0 +1,198 @@
+---
+title: The TPU Chip & the Systolic Array
+summary: How a TPU actually computes a matrix multiply — a systolic array of multiply-accumulate cells that reads each input once and reuses it, trading memory traffic for raw throughput.
+tags: [ml-systems, hardware, accelerators]
+difficulty: intermediate
+estimatedMinutes: 14
+level: 100
+prerequisites: []
+relatedTo: [ml-systems/tpu-topologies]
+videos: []
+flashcards:
+  - front: Systolic array
+    back: A grid of multiply-accumulate (MAC) cells through which data is "pumped" in rhythmic beats. Each input is read from memory once and reused across many cells — trading memory traffic for throughput.
+  - front: MXU (Matrix Multiply Unit)
+    back: The systolic array at the heart of a TPU TensorCore — classically a 128×128 grid of MACs (16,384 multipliers) that computes one 128×128 matrix-multiply tile per pass.
+  - front: MAC (multiply-accumulate)
+    back: The primitive a systolic cell performs each beat — multiply an incoming activation by a stored weight and add it to the running partial sum (`acc += a × w`).
+  - front: Arithmetic intensity
+    back: FLOPs performed per byte read from memory. A systolic array reuses each byte across many MACs, raising arithmetic intensity so the chip stays compute-bound instead of waiting on HBM.
+  - front: bf16 (bfloat16)
+    back: A 16-bit float with fp32's full 8-bit exponent range but fewer mantissa bits. Halves the bytes moved versus fp32 while staying stable for training — the default matmul type on TPUs (multiplied in bf16, accumulated in fp32).
+  - front: Weight-stationary dataflow
+    back: Load the weights into the array once and hold them put while activations stream through. Maximises weight reuse — the array reads each weight from memory a single time.
+  - front: The Padding Trap
+    back: A dimension that doesn't align to the MXU tile (128, or 256 on v6e/v7) or the memory lanes (multiples of 8/128) gets silently zero-padded by XLA. Padded zeros waste compute and on-chip memory — a leading cause of "mysterious" OOMs on a supposedly compute-bound job. Align your shapes.
+  - front: FP4 (native 4-bit)
+    back: Native on TPU 8t — halving the bytes per parameter versus bf16 roughly doubles MXU throughput. It's the extreme of the arithmetic-intensity lever — less memory traffic per FLOP.
+quiz:
+  - question: Why is a general-purpose CPU slow at large matrix multiplies compared with a systolic array?
+    choices:
+      - Its clock runs at a lower frequency
+      - It re-fetches operands from memory for essentially every operation, so it is memory-bound
+      - It cannot perform floating-point arithmetic
+    answer: 1
+    explanation: The bottleneck isn't arithmetic — it's data movement. A CPU reads operands from memory per operation; the systolic array reads each value once and reuses it across many cells.
+  - question: In a weight-stationary systolic array, what moves through the grid while the weights stay put?
+    choices:
+      - Activations stream in from one edge and partial sums accumulate as they flow
+      - The weights are reloaded into every cell each cycle
+      - Nothing moves — the array is purely combinational
+    answer: 0
+    explanation: Weights are loaded once and held; activations march through and each cell multiply-accumulates, passing data to its neighbour. That reuse is the whole point.
+  - question: What does high arithmetic intensity buy you on a TPU?
+    choices:
+      - A higher clock speed
+      - The MXU stays compute-bound rather than stalling on HBM bandwidth
+      - More HBM capacity
+    answer: 1
+    explanation: Reusing each byte across many MACs means the array isn't starved by memory bandwidth — it can run near its peak FLOP rate. Keeping intensity high is how you keep utilization (MFU) high later in this path.
+  - question: A "compute-bound" training job suddenly OOMs after you change a layer width from 4096 to 4097. Why?
+    choices:
+      - 4097 is a prime number and TPUs can't factor it
+      - XLA pads the dimension up to the MXU tile (e.g. 4097 → 4224), so every tile carries wasted zeros that inflate compute and on-chip memory
+      - The extra weight overflowed fp32
+    answer: 1
+    explanation: The Padding Trap. Dimensions off the MXU tile (128/256) or memory lanes are silently zero-padded; the padding wastes compute and memory and can tip a job into OOM. Align shapes to the tile.
+status: published
+---
+
+## The one-line summary
+
+A TPU is, at its core, a machine for **one** operation: matrix multiply. A modern
+transformer spends the vast majority of its FLOPs in matmuls — attention and the MLP
+blocks — so Google built silicon that does nothing else, very fast. The trick that
+makes it fast isn't a faster multiplier. It's a layout — the
+<Term id="systolic array">systolic array</Term> — that **reads each input from
+memory once and reuses it** across thousands of multipliers.
+
+## The problem: a CPU re-fetches everything
+
+On a general-purpose CPU (the von Neumann model), every arithmetic step is in
+principle a round trip: fetch the operands from memory, multiply, write the result
+back. Caches soften this, but they only delay the wall — the multiplier is fast;
+the **memory traffic** is the bottleneck. For a 3×3 matmul — 27
+<Term id="mac">multiply-accumulates</Term>, two operand reads each — that's about
+**54 memory reads**. Scale to a 4096×4096 matmul and the chip spends almost all its
+time waiting on memory, not computing.
+
+## The idea: pump once, reuse (why "systolic")
+
+The name comes from biology: *systole* is the heart's contraction. Data is
+**pumped** through a grid of cells in rhythmic beats. You load the weights into
+the cells **once** (a <Term id="weight-stationary">weight-stationary</Term>
+layout); then activations stream in from one edge and march cell to cell. Each
+cell does one MAC per beat and hands its data to the neighbour — so a single value
+fetched from memory feeds a whole row of multipliers before it's discarded.
+
+## See it move
+
+The simulation has two views. Start on **Why: CPU vs TPU** and run the comparison:
+both do the same 27 multiply-accumulates, but watch the **memory-read counters
+diverge** — the CPU re-fetches operands ~54 times where the array reads each input
+once.
+
+Then switch to **How: the array**. Weights sit in the cells; activations enter from
+the left through the incoming queue and flow right; partial sums flow down. The
+inputs enter **staggered** — each row a beat behind the one above — so every
+activation meets the right partial sum in step; that's why the computing cells form
+a moving **diagonal** wavefront. Pump the clock and watch **utilization** climb as
+the wavefront fills the grid:
+
+<Simulation id="systolic-array" height={520} />
+
+By the middle cycles, most cells are computing **at once** — all fed by data that
+was read from memory a single time. That concurrency × reuse is the entire source
+of a TPU's throughput.
+
+## CPU vs systolic, in numbers
+
+<Callout type="note">
+For a 3×3 matmul (27 MACs) — *illustrative*, since exact CPU figures depend on the
+core:
+
+- **CPU (von Neumann):** ~27+ cycles, **~54 memory reads** (two operands × 27 MACs)
+  — sequential, re-fetching operands per op.
+- **Systolic array:** ~7 cycles, **~18 reads** (9 activations + 9 weights, each read
+  once) — up to **9 MACs per beat**.
+
+The array doesn't have a faster multiplier — it has **more of them running at once**
+on **less memory traffic**.
+</Callout>
+
+## This is the MXU inside the TensorCore
+
+In a real chip, that array is the <Term id="mxu">MXU</Term> (Matrix Multiply Unit)
+— classically a **128×128** grid of MACs (16,384 multipliers) that computes one
+128×128 matmul **tile** per pass — sitting inside each
+<Term id="tensorcore">TensorCore</Term> (a v5p chip carries several MXUs, plus a
+vector and scalar unit for the non-matmul work). Inputs are multiplied in bf16 and
+**accumulated in fp32**. The array is fed from <Term id="hbm">HBM</Term>: a TPU
+**v5p** chip has ~95 GB of HBM at roughly **2.8 TB/s** and delivers about
+**459 bf16 TFLOP/s** — a number you only reach if the MXU stays fed.
+
+## Why bf16, and arithmetic intensity
+
+Keeping the MXU fed is a bandwidth game. The metric is
+<Term id="arithmetic intensity">arithmetic intensity</Term> — FLOPs per byte read
+from memory. Divide v5p's ~459 TFLOP/s by its ~2.8 TB/s and you get a ridge point
+of roughly **165 FLOP/byte**: feed the MXU *fewer* FLOPs per byte than that and it
+sits idle waiting on HBM; *more*, and it runs compute-bound near peak. The systolic
+array's reuse is what pushes you past the ridge. Two levers help:
+
+- **<Term id="bf16">bf16</Term>** halves the bytes moved versus fp32 while keeping
+  fp32's exponent range — so twice as many numbers fit through the same HBM
+  bandwidth, and the MXU runs at its bf16 rate.
+- **Batching** reuses the same stationary weights across many activations, so each
+  weight read pays off over more MACs.
+- **Lower precision** goes further still — TPU 8t's native **FP4** halves the bytes
+  per parameter again versus bf16, roughly **doubling MXU throughput**. It's the
+  extreme of this lever: fewer bytes moved per FLOP.
+
+This is the mental model behind everything later in the path: **the array is only
+worth its TFLOPs when you keep it busy.** The utilization metric (MFU) you'll chase
+in L300 is just "how full was this array, really?"
+
+## The padding trap
+
+There's a catch that can turn a *compute-bound* job into a mysterious **OOM**: the
+MXU works in fixed **tiles** (128×128, or 256×256 on v6e/v7), and the memory system
+prefers multiples of 8 and 128. Any dimension that doesn't line up is **silently
+padded with zeros** by the XLA compiler — and those zeros are real: they burn
+compute and on-chip memory for nothing.
+
+Try it. Raise the batch to cross the ridge into compute-bound, then mis-size the
+feature dimension (e.g. `4096 → 4097`, or pick the 256-tile chip) and watch the
+padding waste — and the memory footprint — spike:
+
+<Simulation id="arithmetic-intensity-calculator" height={420} />
+
+The takeaway: **shapes are not free.** Align batch and feature dimensions to the MXU
+tile and the memory lanes, or you'll pay for zeros — sometimes with an out-of-memory
+crash on a job you were certain was compute-bound.
+
+## Why it matters for ML
+
+Transformers are mostly matmul, so the MXU is where your model's compute actually
+happens — and where your money goes. As an infrastructure engineer your job is to
+keep that array fed: pick bf16, size batches and shapes so the matmuls are big and
+weights are reused, and avoid stalls that leave the wavefront half-empty. Every
+higher level of this path — sharding, pipelines, collectives — exists to keep more
+of these arrays busy at once.
+
+## Put it together
+
+<Steps>
+<Step title="Watch utilization peak">
+In the simulation above, pump the clock and note the cycle where utilization is
+highest. Those cells are all computing on data read from memory once.
+</Step>
+<Step title="Contrast with the CPU">
+Re-read the comparison above. Say in one sentence *why* the CPU needs ~54 memory
+reads where the array needs ~18 — it's about reuse, not multiplier speed.
+</Step>
+<Step title="Reason about keeping it fed">
+Explain how bf16 and larger batches raise arithmetic intensity, and why that keeps
+the MXU compute-bound rather than stalling on HBM.
+</Step>
+</Steps>

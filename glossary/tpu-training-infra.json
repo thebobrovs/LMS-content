@@ -1,0 +1,98 @@
+{
+  "systolic array": {
+    "definition": "A grid of multiply-accumulate cells through which data is pumped in rhythmic beats; each input is read from memory once and reused across many cells, trading memory traffic for throughput."
+  },
+  "mxu": {
+    "definition": "Matrix Multiply Unit — the systolic array at the heart of a TPU TensorCore, classically a 128×128 grid of MACs (16,384 multipliers) that computes one 128×128 matrix-multiply tile per pass.",
+    "href": "https://cloud.google.com/tpu/docs/v5p",
+    "linkLabel": "TPU v5p docs"
+  },
+  "mac": {
+    "definition": "Multiply-accumulate — the primitive a systolic cell performs each beat: multiply an activation by a stored weight and add it to the running partial sum (acc += a × w)."
+  },
+  "tensorcore": {
+    "definition": "The compute core of a TPU chip: one or more MXUs (matrix units) plus a vector unit and scalar unit, fed from HBM."
+  },
+  "hbm": {
+    "definition": "High-Bandwidth Memory — the fast on-package DRAM that feeds a TPU's compute units (≈95 GB at ≈2.8 TB/s on v5p)."
+  },
+  "arithmetic intensity": {
+    "definition": "FLOPs performed per byte read from memory. High intensity (lots of reuse) keeps a chip compute-bound; low intensity leaves it memory-bound and idle."
+  },
+  "bf16": {
+    "definition": "bfloat16 — a 16-bit float with fp32's full 8-bit exponent range but fewer mantissa bits. Halves the bytes moved versus fp32 while staying stable for training; the default matmul type on TPUs."
+  },
+  "weight-stationary": {
+    "definition": "A systolic dataflow that loads weights into the array once and holds them put while activations stream through — maximising weight reuse."
+  },
+  "asic": {
+    "definition": "Application-Specific Integrated Circuit — a chip designed for one job. A TPU is an ASIC purpose-built for the matrix math in neural networks; it can't run general-purpose code."
+  },
+  "vpu": {
+    "definition": "Vector unit — the part of a TensorCore that handles non-matmul math (activations, softmax, normalization, elementwise ops), alongside the MXU and scalar unit."
+  },
+  "tpu vm": {
+    "definition": "The Linux host VM physically attached to the TPU chips. You SSH in with root access and run your JAX / PyTorch-XLA code; it dispatches the heavy compute to the TPU over PCIe.",
+    "href": "https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm",
+    "linkLabel": "TPU system architecture"
+  },
+  "ici": {
+    "definition": "Inter-Chip Interconnect — the high-bandwidth links wiring TPU chips into a slice and Pod (a 3D torus), bypassing the host network. Collective operations ride ICI."
+  },
+  "dcn": {
+    "definition": "Data-Center Network — the (slower than ICI) host-to-host network (the VPC) carrying cross-slice/Multislice traffic, host rendezvous, and checkpointing to GCS. MTU 8896 + firewall rules apply here, not to ICI."
+  },
+  "multislice": {
+    "definition": "Joining multiple slices/Pods over the slower Data-Center Network (DCN) for jobs bigger than one Pod — cross-slice traffic is far slower than ICI."
+  },
+  "sparsecore": {
+    "definition": "A dedicated TPU unit (introduced on v4; on v5p, v6e, v7 and the training-focused TPU 8t) that accelerates very large embedding lookups — the heavy part of recommendation/ranking and MoE routing. On the inference-focused TPU 8i it is replaced by a CAE."
+  },
+  "cae": {
+    "definition": "Collectives Acceleration Engine — the TPU 8i (inference) block that replaces the four SparseCores; aggregates results across cores with near-zero latency, cutting on-chip collective latency ~5× (key for fast auto-regressive decoding).",
+    "href": "https://cloud.google.com/blog/products/compute/tpu-8t-and-tpu-8i-technical-deep-dive",
+    "linkLabel": "TPU 8t/8i deep dive"
+  },
+  "tpu 8t": {
+    "definition": "Google's 8th-generation training TPU — SparseCores + an LLM decoder engine on a 3D-torus network, native FP4, 216 GB HBM; superpods of 9,600 chips scaling past a million per cluster."
+  },
+  "tpu 8i": {
+    "definition": "Google's 8th-generation inference TPU — replaces SparseCores with a CAE, carries 3× the on-chip SRAM (384 MB) to hold the KV cache, and uses the Boardfly network; tuned for serving/reasoning."
+  },
+  "boardfly": {
+    "definition": "TPU 8i's network topology — a hierarchical optical-circuit-switched design with a ~7-hop diameter across 1,024 chips (vs 16 on a 3D torus), ~56% lower than a torus."
+  },
+  "liquid cooling": {
+    "definition": "Introduced at TPU V3 — the fix when rising performance density broke air cooling. Liquid carries heat away so chips can run hotter/denser."
+  },
+  "ocs": {
+    "definition": "Optical Circuit Switch — introduced at TPU V4. Reconfigurable optical links that reshape slices and route around failed chips; the only way to wire very large Pods reliably."
+  },
+  "trillium": {
+    "definition": "The TPU v6e generation — cost-efficient, tuned for inference and smaller training runs; ≈100× the performance of V2."
+  },
+  "ironwood": {
+    "definition": "The 7th-gen TPU (v7 / TPU7x). Ships in two pod sizes — 256 and 9,216 chips; 9,216 is the megascale maximum."
+  },
+  "padding": {
+    "definition": "XLA zero-pads tensor dimensions up to the MXU tile (128, or 256 on v6e/v7) and the memory lanes (multiples of 8/128). Misaligned shapes carry wasted padded zeros — burning compute and on-chip memory, a common cause of surprise OOMs."
+  },
+  "fp4": {
+    "definition": "Native 4-bit floating point on TPU 8t — halves the bytes per parameter versus bf16, roughly doubling MXU throughput by cutting memory traffic per FLOP."
+  },
+  "xpk": {
+    "definition": "Accelerated Processing Kit — Google's CLI for orchestrating TPU workloads on GKE. The real entry point: XPK → Kueue → GKE provisions DWS Flex-start nodes. You don't hand-submit raw pods for multi-host slices."
+  },
+  "dws flex-start": {
+    "definition": "Dynamic Workload Scheduler, Flex-start mode — ephemeral, queued, low-cost capacity for bursty jobs; you wait in a queue, then get the slice for a bounded window."
+  },
+  "kueue": {
+    "definition": "Kubernetes-native job queueing on GKE — quota, priority, and gang-scheduling (all-or-nothing) for multi-host TPU slices."
+  },
+  "capacity mode": {
+    "definition": "How you acquire TPU capacity: on-demand, reservation (committed, guaranteed), Spot (cheapest, preemptible), or DWS Flex-start (ephemeral, queued). Match the mode to the workload."
+  },
+  "hyperdisk ml": {
+    "definition": "High-throughput attached storage for ML on GCP (alongside Filestore / Managed Lustre) — you attach it so the chips aren't data-starved; it's what the input pipeline reads from."
+  }
+}

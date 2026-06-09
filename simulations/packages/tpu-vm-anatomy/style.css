@@ -1,0 +1,101 @@
+/* TPU chip anatomy — matches Google's architecture diagram, on LMS tokens,
+ * theme-aware, no CDNs. */
+:root {
+  --bg: #ffffff; --fg: #202124; --muted: #5f6368; --border: #dadce0;
+  --panel: #ffffff; --primary: #1a73e8;
+  --amber: #fbc02d; --amber-fg: #3c2e00;
+  --chip-bg: #c5d9fb; --chip-fg: #202124;
+  --core-bg: #ffffff; --core-fg: #202124;
+  --unit: #d2e3fc; --unit-fg: #174ea6;
+  --mxu: #fde293; --mxu-fg: #5c4400;
+  --hbm: #2e9e4f; --hbm-fg: #ffffff;
+  --ici: #4285f4; --ici-fg: #ffffff;
+  --neighbor: #aecbfa; --neighbor-fg: #202124;
+  --marker: #1a73e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a; --fg: #e8eaed; --muted: #9aa0a6; --border: #3c4043;
+    --panel: #1e293b; --primary: #8ab4f8;
+    --amber: #f9ab00; --amber-fg: #201600;
+    --chip-bg: #1c3357; --chip-fg: #e8eaed;
+    --core-bg: #16233a; --core-fg: #e8eaed;
+    --unit: #28456e; --unit-fg: #c7dbff;
+    --mxu: #c9a227; --mxu-fg: #1a1400;
+    --hbm: #34a853; --hbm-fg: #ffffff;
+    --ici: #4285f4; --ici-fg: #ffffff;
+    --neighbor: #28456e; --neighbor-fg: #e8eaed;
+    --marker: #4285f4;
+  }
+}
+[data-theme="light"] {
+  --bg: #ffffff; --fg: #202124; --muted: #5f6368; --border: #dadce0; --panel: #ffffff; --primary: #1a73e8;
+  --amber: #fbc02d; --amber-fg: #3c2e00; --chip-bg: #c5d9fb; --chip-fg: #202124; --core-bg: #ffffff; --core-fg: #202124;
+  --unit: #d2e3fc; --unit-fg: #174ea6; --mxu: #fde293; --mxu-fg: #5c4400; --hbm: #2e9e4f; --hbm-fg: #fff;
+  --ici: #4285f4; --ici-fg: #fff; --neighbor: #aecbfa; --neighbor-fg: #202124; --marker: #1a73e8;
+}
+[data-theme="dark"] {
+  --bg: #0f172a; --fg: #e8eaed; --muted: #9aa0a6; --border: #3c4043; --panel: #1e293b; --primary: #8ab4f8;
+  --amber: #f9ab00; --amber-fg: #201600; --chip-bg: #1c3357; --chip-fg: #e8eaed; --core-bg: #16233a; --core-fg: #e8eaed;
+  --unit: #28456e; --unit-fg: #c7dbff; --mxu: #c9a227; --mxu-fg: #1a1400; --hbm: #34a853; --hbm-fg: #fff;
+  --ici: #4285f4; --ici-fg: #fff; --neighbor: #28456e; --neighbor-fg: #e8eaed; --marker: #4285f4;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+#app { padding: 16px; overflow-x: auto; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.hint { font-size: 14px; font-style: italic; color: var(--muted); margin-bottom: 16px; }
+
+.stage { display: flex; align-items: center; gap: 8px; width: max-content; min-width: 100%; }
+.arr { color: var(--muted); font-size: 18px; flex: none; }
+
+.part { position: relative; cursor: pointer; transition: box-shadow .15s, filter .15s; }
+.part.sel { box-shadow: 0 0 0 3px var(--marker), 0 0 16px color-mix(in srgb, var(--marker) 35%, transparent); }
+.marker { position: absolute; top: -9px; left: -9px; z-index: 4; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--marker); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--marker) 22%, transparent); }
+
+/* workload toggle */
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 14px; }
+.gentabs { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 3px; }
+.gtab { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 14px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--muted); cursor: pointer; }
+.gtab.on { background: var(--marker); color: #fff; }
+.gennote { margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.gennote strong { color: var(--fg); }
+
+/* CAE block (TPU 8i) + VMEM emphasis */
+.cae { flex: 1; background: color-mix(in srgb, var(--g2) 22%, var(--core-bg)); color: var(--fg);
+  border: 1.5px solid var(--g2); font-weight: 700; }
+.u.big { background: color-mix(in srgb, var(--g2) 24%, var(--unit)); border: 1.5px solid var(--g2); }
+.x3 { font-size: 10px; font-weight: 800; color: var(--g2); background: color-mix(in srgb, var(--g2) 18%, transparent);
+  border-radius: 4px; padding: 0 4px; margin-left: 2px; }
+
+/* side columns */
+.side { flex: none; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 14px; text-align: center; padding: 8px; }
+.host { width: 78px; height: 92px; background: var(--amber); color: var(--amber-fg); }
+.pcie { width: 64px; height: 300px; background: var(--amber); color: var(--amber-fg); }
+.ici { width: 64px; height: 300px; background: var(--ici); color: var(--ici-fg); }
+.neighbor { width: 78px; height: 300px; background: var(--neighbor); color: var(--neighbor-fg); }
+
+/* chip */
+.chip { flex: none; position: relative; padding: 14px 14px 26px; border-radius: 16px; background: var(--chip-bg); }
+.chip-name { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: var(--chip-fg); }
+.cores { display: flex; gap: 12px; }
+.tensorcore { background: var(--core-bg); color: var(--core-fg); border-radius: 12px; padding: 12px; }
+.tc-label { text-align: center; font-size: 13px; font-weight: 600; margin-bottom: 10px; position: relative; }
+.tc-units { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.u { background: var(--unit); color: var(--unit-fg); border-radius: 8px; padding: 10px 8px; font-size: 12px; font-weight: 600; text-align: center; min-height: 42px; display: grid; place-items: center; }
+.mxus { display: flex; gap: 8px; }
+.mxu { background: var(--mxu); color: var(--mxu-fg); border-radius: 8px; width: 40px; height: 84px; display: grid; place-items: end center; padding-bottom: 8px; font-size: 12px; font-weight: 700; }
+.hbm { margin-top: 12px; height: 44px; background: var(--hbm); color: var(--hbm-fg); border-radius: 8px; display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+.sparse { display: flex; gap: 12px; margin-top: 12px; }
+.sc { flex: 1; background: var(--unit); color: var(--unit-fg); border-radius: 8px; height: 48px; display: grid; place-items: center; font-weight: 600; font-size: 13px; }
+
+/* detail card */
+.detail { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: 10px; background: var(--panel); }
+.dname { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+.drole { font-size: 14px; line-height: 1.5; }
+.dspec { margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }

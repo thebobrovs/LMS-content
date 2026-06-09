@@ -1,0 +1,40 @@
+/* TPU topology explorer — LMS tokens, theme-aware, no CDNs. */
+:root {
+  --bg:#fff; --fg:#0f172a; --muted:#64748b; --surface:#f1f5f9; --panel:#fff;
+  --border:#e2e8f0; --inset:#f8fafc; --primary:#2563eb; --primary-contrast:#fff; --good:#0d9488;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0f172a; --fg:#f8fafc; --muted:#94a3b8; --surface:#1e293b; --panel:#1e293b;
+    --border:#334155; --inset:#0f172a; --primary:#60a5fa; --primary-contrast:#0b1220; --good:#2dd4bf; }
+}
+[data-theme="light"] { --bg:#fff; --fg:#0f172a; --muted:#64748b; --surface:#f1f5f9; --panel:#fff; --border:#e2e8f0; --inset:#f8fafc; --primary:#2563eb; --primary-contrast:#fff; --good:#0d9488; }
+[data-theme="dark"] { --bg:#0f172a; --fg:#f8fafc; --muted:#94a3b8; --surface:#1e293b; --panel:#1e293b; --border:#334155; --inset:#0f172a; --primary:#60a5fa; --primary-contrast:#0b1220; --good:#2dd4bf; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+#app { padding: 16px; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+.hint b { color: var(--fg); }
+
+.tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 3px; margin-bottom: 16px; }
+.tab { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; }
+.tab.on { background: var(--primary); color: var(--primary-contrast); }
+
+.chart { position: relative; display: flex; align-items: flex-end; gap: 22px; height: 140px; padding: 0 8px 4px; border-bottom: 2px solid var(--border); margin-bottom: 8px; }
+.barwrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
+.bar { width: 100%; max-width: 70px; min-height: 14px; border-radius: 6px 6px 0 0; background: color-mix(in srgb, var(--primary) 28%, var(--surface)); display: grid; align-content: start; justify-items: center; padding-top: 4px; }
+.barwrap.sel .bar { background: var(--primary); box-shadow: 0 0 14px color-mix(in srgb, var(--primary) 40%, transparent); }
+.dval { font-size: 13px; font-weight: 800; color: var(--fg); }
+.barwrap.sel .dval { color: var(--primary-contrast); }
+.blabel { font-size: 11px; font-weight: 600; color: var(--muted); }
+.barwrap.sel .blabel { color: var(--fg); }
+.axis-note { position: absolute; top: 0; right: 8px; font-size: 10px; color: var(--muted); }
+
+.detail { margin-top: 12px; padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: 10px; background: var(--panel); }
+.dname { font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+.dnote { font-weight: 400; font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; margin-left: 6px; }
+.drow { font-size: 14px; line-height: 1.55; margin-top: 5px; }
+.drow b { font-variant-numeric: tabular-nums; }
+.k { display: inline-block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface); padding: 1px 6px; border-radius: 4px; margin-right: 8px; vertical-align: 1px; }

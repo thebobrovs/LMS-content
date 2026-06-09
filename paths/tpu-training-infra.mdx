@@ -3,38 +3,14 @@ title: TPU Training Infrastructure
 summary: Design, orchestrate, scale, optimize, and operate Cloud TPU training clusters — from a single chip to tens of thousands — for flagship AI models.
 levels:
   - level: 100
-    title: Foundations — hardware & the AI stack
+    title: Foundational TPU architecture & provisioning
     topics:
+      - ml-systems/why-tpus
+      - ml-systems/tpu-evolution-bottlenecks
       - ml-systems/tpu-chip-systolic-array
-      - ml-systems/tpu-slices-and-vms
-      - ml-systems/tpu-v5p-topology
-      - ml-systems/jax-xla-stack
-  - level: 200
-    title: Single-slice training, serving & orchestration
-    topics:
-      - ml-systems/orchestration-xpk-gke
-      - ml-systems/spmd-multi-host
-      - ml-systems/input-pipeline
-      - ml-systems/training-frameworks
-      - ml-systems/checkpointing
-      - ml-systems/inference-serving
-  - level: 300
-    title: Megascale — multi-slice, sharding & performance
-    topics:
-      - ml-systems/multislice-megascale
-      - ml-systems/parallelism-and-sharding
-      - ml-systems/collectives
-      - ml-systems/performance-mfu
-      - ml-systems/profiling-observability
-  - level: 400
-    title: Resilience, custom kernels & co-design
-    topics:
-      - ml-systems/fault-tolerance
-      - ml-systems/pallas-kernels
-      - ml-systems/inmemory-recovery
-      - ml-systems/inference-quantization
-      - ml-systems/hw-sw-codesign
-status: draft
+      - ml-systems/tpu-topologies
+      - ml-systems/tpu-provisioning-vm
+status: published
 ---
 
 For cloud-infrastructure engineers, SREs, and platform admins who know
@@ -43,21 +19,12 @@ you can design, orchestrate, scale, optimize, and operate Cloud TPU training
 clusters — and predict the effect of a slice shape, a sharding plan, or a failed
 chip on a real training run.
 
-The path climbs four levels:
+**Level 100 — Foundations is live now.** Build the mental model: why TPUs exist and
+how you reach one (the TPU VM), how the hardware *evolved by chasing bottlenecks*,
+how a TPU *computes* (the systolic array, arithmetic intensity, the padding trap),
+the network *topologies* (ICI vs DCN; torus vs Boardfly), and how you *provision*
+TPUs on GKE.
 
-- **L100 — Foundations.** Build the mental model: how a TPU *computes* (the
-  systolic array), how chips are packaged into slices and pods, how they wire
-  together (ICI vs DCN, the 3D torus), and the JAX/XLA stack that drives them.
-- **L200 — Single slice.** Run real work on one slice: orchestrate with XPK/GKE,
-  understand SPMD multi-host execution, feed the chips (input pipeline), train
-  with reference frameworks (MaxText / PyTorch-XLA), checkpoint with Orbax, and
-  serve inference with vLLM.
-- **L300 — Megascale.** Cross the single-slice boundary: multi-slice over DCN,
-  3D parallelism and device-mesh sharding, the collectives underneath, and the
-  performance engineering (MFU/HFU, profiling) that keeps utilization high.
-- **L400 — Operate at hero scale.** Fault-tolerant, elastic training across tens
-  of thousands of chips, custom Pallas kernels, in-memory recovery, inference
-  quantization, and hardware-software co-design.
-
-Each lesson pairs a browser simulation with a link to a hands-on Cloud TPU
-codelab — learn the *why* here, then run it on real hardware.
+Each lesson pairs a browser simulation with the *why*, then a hands-on Cloud TPU
+codelab. **L200 (single-slice execution), L300 (megascale), and L400 (chaos &
+bare-metal control) are rolling out next.**

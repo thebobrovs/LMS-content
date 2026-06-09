@@ -1,0 +1,9 @@
+{
+  "id": "tpu-evolution-timeline",
+  "title": "TPU evolution timeline",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-evolution", "hint": "Step through every generation to the 8th-gen split, reading the bottleneck each one broke." }
+  ]
+}

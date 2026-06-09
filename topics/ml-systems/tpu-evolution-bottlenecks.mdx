@@ -1,0 +1,121 @@
+---
+title: TPU Evolution — Chasing the Bottleneck
+summary: TPU history isn't trivia — it's the story of chasing the bottleneck. Trace V1 → 8th gen and see how each generation added a feature to fix what broke the last at scale.
+tags: [ml-systems, hardware, accelerators]
+difficulty: beginner
+estimatedMinutes: 10
+level: 100
+prerequisites: []
+relatedTo: [ml-systems/why-tpus, ml-systems/tpu-chip-systolic-array]
+videos: []
+flashcards:
+  - front: The "chasing the bottleneck" idea
+    back: TPU hardware evolves to eliminate the *next* operational bottleneck — compute → memory → thermal → network → workload. Each generation's headline feature is the fix for what capped the previous one at scale.
+  - front: Which generation introduced liquid cooling?
+    back: V3 — rising performance density broke air cooling, so the hardware moved to liquid cooling (≈3×/chip, 12×/pod over the V2 baseline).
+  - front: Which generation introduced optical reconfigurability (OCS)?
+    back: V4 — Pods grew too big and failure-prone for static copper wiring, so Optical Circuit Switches were added to reconfigure slices and route around dead chips. V4 reached ≈6.6×/chip, 100×/pod.
+  - front: Trillium and Ironwood
+    back: Trillium = v6e (cost-efficient inference / smaller training). Ironwood = v7 (TPU7x) — ships in two pod sizes, 256 and 9,216 chips; 9,216 is the megascale maximum.
+  - front: Why did the 8th gen split into 8t and 8i?
+    back: Training and serving bottlenecks diverged too far for one chip — pre-training (embeddings, throughput) vs serving (KV-cache memory, low-latency collectives). So the silicon split into TPU 8t (training) and TPU 8i (inference).
+quiz:
+  - question: What does "chasing the bottleneck" mean for TPU generations?
+    choices:
+      - Each generation just adds more chips of the same design
+      - Each generation adds a feature specifically to fix the scaling wall the previous one hit
+      - Each generation targets a different programming language
+    answer: 1
+    explanation: The progression is compute → memory → thermal → network → workload. Liquid cooling (V3), OCS (V4), and the 8t/8i split each solved the previous generation's bottleneck.
+  - question: Why was the Optical Circuit Switch (OCS) introduced at V4?
+    choices:
+      - To make the chips run cooler
+      - Because Pods got too big/failure-prone for static copper — OCS reconfigures slices and routes around dead chips
+      - To replace the host CPU
+    answer: 1
+    explanation: OCS wasn't just reliability — it was the only way to physically wire a 100×-pod without the network failing, and it lets the fabric route around failed chips.
+  - question: Why did the TPU architecture split into two chips (8t and 8i) at the 8th generation?
+    choices:
+      - To support two different cloud regions
+      - Because the bottlenecks of pre-training and of serving fundamentally diverged
+      - To reduce manufacturing cost only
+    answer: 1
+    explanation: Pre-training is bound by embedding lookups and throughput; serving is bound by KV-cache memory and low-latency collective aggregation. One chip can't optimize both, so 8t (training) and 8i (inference) split apart.
+status: published
+---
+
+## The one-line summary
+
+TPU history isn't trivia — it's the story of **chasing the bottleneck**. Every
+generation introduced a feature *specifically to fix whatever broke the previous
+one at scale*. The chain runs **compute → memory → thermal → network → workload**.
+Learn the chain and the modern Pod stops looking arbitrary.
+
+## Step through it
+
+Click each generation and read the wall it hit and the fix it shipped:
+
+<Simulation id="tpu-evolution-timeline" height={420} />
+
+## V1 → V2: from inference to training
+
+**V1** was a pure *internal* inference accelerator — a matmul ASIC to make Google's
+own models cheap to serve. **V2** moved to **training** by adding distributed shared
+memory, creating the first multi-chip **Pods**. V2 sets the **baseline (1×/chip,
+1×/pod)** that every later jump is measured against.
+
+## V3 → V4: heat, then the network
+
+As performance density climbed, **air cooling failed** → **V3 introduced
+<Term id="liquid cooling">liquid cooling</Term>** (≈3×/chip, 12×/pod). Then Pods grew
+so large that **static copper wiring couldn't keep them reliable** → **V4 became
+optically reconfigurable with <Term id="ocs">OCS</Term>**, reaching **≈6.6×/chip,
+100×/pod**. OCS wasn't just for reliability — it was the **only way to physically
+wire a 100×-pod** without the network failing, and it routes around dead chips.
+
+## Megascale: v5p, Trillium, Ironwood
+
+The naming tells the story: TPUs are `v{gen}{variant}` — **`e` = efficiency**,
+**`p` = performance**. **v5p** (the performance variant) hit **21×/chip, 750×/pod**.
+**<Term id="trillium">Trillium</Term> (v6e)** delivered ≈100× the performance of V2
+at much better cost-efficiency. **<Term id="ironwood">Ironwood</Term> (v7 / TPU7x)** pushed
+Pod scale to **9,216 chips** — it ships in two pod sizes (**256** and **9,216**), so
+cite 9,216 only for the megascale config.
+
+## The 8th generation: the workload split
+
+By the 8th gen, the designers hit a new kind of wall — **training and serving
+bottlenecks had diverged too far for a single chip.** Pre-training is bound by
+embedding lookups and raw throughput; serving is bound by KV-cache memory and
+low-latency collective aggregation. So the silicon **split**, and the naming
+switched from `e`/`p` to **`t`/`i`**:
+
+- **TPU 8t** — training (SparseCore, 3D torus).
+- **TPU 8i** — inference (CAE replacing the SparseCores, Boardfly network).
+
+That split is the loudest proof of the whole path's thesis: **the box is tailored
+to the workload.**
+
+## Why this matters
+
+Every feature you'll use in the rest of this path — liquid-cooled racks,
+OCS-reconfigured slices, the 8t/8i choice — exists because *something broke at
+scale*. Knowing which bottleneck each one solved turns a spec sheet into a
+predictive model: when you hit a new wall, you'll know what kind of fix to look for.
+
+## Put it together
+
+<Steps>
+<Step title="Name the bottleneck OCS fixed">
+Step the timeline to **V4**. In one sentence, say what broke at V3→V4 scale and why
+OCS — not just faster chips — was the fix.
+</Step>
+<Step title="Explain the baseline">
+Why is **V2** the "1×" baseline rather than V1? (Hint: what changed about *what the
+chip was for*.)
+</Step>
+<Step title="Justify the 8th-gen split">
+Explain, from bottlenecks, why one chip couldn't serve both training and inference —
+and which 8th-gen chip you'd pick to pre-train vs to serve.
+</Step>
+</Steps>
