@@ -38,10 +38,11 @@ blueprint-first: this doc → a plan per topic → topic by topic, signing off e
 
 | ID | Topic (`id`) | What / How / Why | Hard-Knocks Lab | Visual / lab | Status |
 |----|--------------|------------------|-----------------|--------------|--------|
-| 1.1 | `why-tpus` | "The box": you SSH into a host CPU sitting in front of the accelerator; the TPU VM model, chip anatomy (TensorCore/MXU/SparseCore/HBM), the scale ladder, and the **8th-gen split (8t training / 8i inference)** | — | sim `tpu-vm-anatomy` (**8t↔8i toggle**) | on staging |
-| 1.2 | `tpu-chip-systolic-array` | "The silicon": data streams through the systolic array in bf16 on a diagonal wavefront, reusing inputs without constant memory access | Calculate arithmetic intensity for matrix sizes on v5p vs v6e | sim `systolic-array` · lab (**sim**) | on staging |
-| 1.3 | `tpu-v5p-topology` | ICI vs DCN; 2D torus (v6e) vs 3D torus (TPU7x); shape dictates network diameter; know when a collective rides ICI vs DCN | — | sim `torus-3d` (reuse) | published |
-| 1.4 | `tpu-provisioning-vm` | Execute on the host attached to the TPU; provision via GKE + Kueue + DWS Flex-start; MTU/capacity config | (provision a TPU VM + run on the host) | figure + lab (**codelab**) | planned |
+| 1.1 | `why-tpus` | "The box": you SSH into a host CPU sitting in front of the accelerator; the TPU VM model, chip anatomy (TensorCore/MXU/SparseCore/HBM), the scale ladder, and the **8th-gen split (8t training / 8i inference)** | — | sim `tpu-vm-anatomy` (**8t↔8i toggle**) | signed off |
+| 1.2 | **`tpu-evolution-bottlenecks`** | **"Chasing the bottleneck": V1→8th gen, each generation a fix for what broke the last at scale (compute → memory → thermal → network → workload). Liquid cooling (v3), OCS (v4), the 8t/8i split** | — | interactive timeline + `<Steps>` | planned |
+| 1.3 | `tpu-chip-systolic-array` | "The silicon": data streams through the systolic array in bf16 on a diagonal wavefront, reusing inputs; arithmetic intensity, the Padding Trap, FP4 | Arithmetic-intensity + padding calculator | sims `systolic-array` + `arithmetic-intensity-calculator` (**sim**) | on staging |
+| 1.4 | `tpu-v5p-topology` | ICI vs DCN; 2D torus (v6e) vs 3D torus (TPU7x) vs Boardfly (8i); shape dictates network diameter; know when a collective rides ICI vs DCN | — | sim `torus-3d` (reuse) | published |
+| 1.5 | `tpu-provisioning-vm` | Execute on the host attached to the TPU; provision via GKE + Kueue + DWS Flex-start; MTU/capacity config | (provision a TPU VM + run on the host) | figure + lab (**codelab**) | planned |
 
 ### L200 — Single-Slice Execution & The "No Black Box" Mandate
 *Run on a single slice (up to one Pod), demystify the compiler, never starve the TPUs for data.*
@@ -80,6 +81,7 @@ blueprint-first: this doc → a plan per topic → topic by topic, signing off e
 5. **Sim feasibility:** 3.4 = **figures + codelab** (a full XProf sim would be cruft); 4.3 Pallas = **a sim** (memory-tier mental models are weak — high value). ✅
 
 ## Already built (on staging)
-`why-tpus` (1.1) + `tpu-chip-systolic-array` (1.2) authored, audited, on staging;
-`tpu-v5p-topology` (1.3) reuses the existing published lesson. **Flagship to nail:
+`why-tpus` (1.1, signed off) + `tpu-chip-systolic-array` (now **1.3**) authored,
+audited, on staging; `tpu-v5p-topology` (now **1.4**) reuses the existing published
+lesson. New `tpu-evolution-bottlenecks` (**1.2**) is planned. **Flagship to nail:
 the `mesh-sharding` sim in 3.2.**
