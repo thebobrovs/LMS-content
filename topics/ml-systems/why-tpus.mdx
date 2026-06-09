@@ -7,7 +7,9 @@ estimatedMinutes: 11
 level: 100
 prerequisites: []
 relatedTo: [ml-systems/tpu-chip-systolic-array, ml-systems/tpu-topologies]
-videos: []
+videos:
+  - youtubeId: FsxthdQ_sL4
+    title: Inside the Google Cloud TPU system — data centers, OCS, liquid cooling, security
 flashcards:
   - front: TPU
     back: Tensor Processing Unit — an ASIC (application-specific integrated circuit) Google designed to accelerate the matrix math in neural networks. It is not general-purpose; it can't run arbitrary applications.
@@ -121,6 +123,16 @@ A TPU's power comes from ganging chips together. The ladder:
 
 Almost everything later in this path is about climbing this ladder efficiently —
 the topology topic makes the Pod concrete.
+
+## See it in a real data center
+
+The ladder above is the abstraction; this is the physical reality. Google's own
+walkthrough shows the TPU *system* that surrounds the chip — the data-center
+networking, the **optical circuit switches** and **liquid cooling** you'll meet in
+the evolution and topology topics, and even the biometric security of the buildings
+where it all runs.
+
+<YouTube id="FsxthdQ_sL4" title="Inside the Google Cloud TPU system — data centers, OCS, liquid cooling, security" />
 
 ## Which TPU, and when
 
