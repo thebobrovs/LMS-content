@@ -1,0 +1,9 @@
+{
+  "id": "bf16-vs-fp32",
+  "title": "bf16 vs fp32 — range over precision",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-bf16", "hint": "Drag the value large or tiny until fp16 overflows/underflows — and notice bf16 still holds it, because it keeps fp32's full 8-bit exponent." }
+  ]
+}

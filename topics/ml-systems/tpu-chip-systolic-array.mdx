@@ -153,6 +153,26 @@ This is the mental model behind everything later in the path: **the array is onl
 worth its TFLOPs when you keep it busy.** The utilization metric (MFU) you'll chase
 in L300 is just "how full was this array, really?"
 
+## Why bf16, not fp32 — range over precision
+
+Halving the bytes only helps if the numbers still come out right. The trick is
+*which* bits you drop. A float is **sign + exponent (range) + mantissa
+(precision)**. **<Term id="bf16">bf16</Term> keeps fp32's full 8-bit exponent** — so
+the exact same **dynamic range** — and throws away mantissa bits instead. The
+alternative 16-bit format, fp16, does the opposite: more mantissa, but a 5-bit
+exponent that **overflows and underflows** at the extremes.
+
+That matters because ML training spans a *huge* range — tiny gradients near `1e-7`
+up to activations near `1e5` — and needs the **range** far more than the last digits
+of **precision**. Drag the value and watch fp16 break where bf16 holds:
+
+<Simulation id="bf16-vs-fp32" height={480} />
+
+So bf16 is the sweet spot: **fp32's range, half the memory** (→ 2× the arithmetic
+intensity), and the small rounding error averages out across millions of updates.
+And because the MXU **multiplies in bf16 but accumulates in fp32**, the running sums
+stay accurate — you get the memory win without the error piling up.
+
 ## The padding trap
 
 There's a catch that can turn a *compute-bound* job into a mysterious **OOM**: the
