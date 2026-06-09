@@ -43,6 +43,20 @@
     "definition": "Joining multiple slices/Pods over the slower Data-Center Network (DCN) for jobs bigger than one Pod — cross-slice traffic is far slower than ICI."
   },
   "sparsecore": {
-    "definition": "A dedicated TPU unit (introduced on v4; on v5p, v6e and v7) that accelerates very large embedding lookups — the heavy part of recommendation/ranking models and mixture-of-experts routing."
+    "definition": "A dedicated TPU unit (introduced on v4; on v5p, v6e, v7 and the training-focused TPU 8t) that accelerates very large embedding lookups — the heavy part of recommendation/ranking and MoE routing. On the inference-focused TPU 8i it is replaced by a CAE."
+  },
+  "cae": {
+    "definition": "Collectives Acceleration Engine — the TPU 8i (inference) block that replaces the four SparseCores; aggregates results across cores with near-zero latency, cutting on-chip collective latency ~5× (key for fast auto-regressive decoding).",
+    "href": "https://cloud.google.com/blog/products/compute/tpu-8t-and-tpu-8i-technical-deep-dive",
+    "linkLabel": "TPU 8t/8i deep dive"
+  },
+  "tpu 8t": {
+    "definition": "Google's 8th-generation training TPU — SparseCores + an LLM decoder engine on a 3D-torus network, native FP4, 216 GB HBM; superpods of 9,600 chips scaling past a million per cluster."
+  },
+  "tpu 8i": {
+    "definition": "Google's 8th-generation inference TPU — replaces SparseCores with a CAE, carries 3× the on-chip SRAM (384 MB) to hold the KV cache, and uses the Boardfly network; tuned for serving/reasoning."
+  },
+  "boardfly": {
+    "definition": "TPU 8i's network topology — a hierarchical optical-circuit-switched design with a ~7-hop diameter across 1,024 chips (vs 16 on a 3D torus), ~56% lower than a torus."
   }
 }

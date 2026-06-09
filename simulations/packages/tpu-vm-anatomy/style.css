@@ -57,6 +57,22 @@ body { background: var(--bg); color: var(--fg); font-family: ui-sans-serif, syst
   background: var(--marker); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--marker) 22%, transparent); }
 
+/* workload toggle */
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 14px; }
+.gentabs { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 3px; }
+.gtab { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 14px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--muted); cursor: pointer; }
+.gtab.on { background: var(--marker); color: #fff; }
+.gennote { margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.gennote strong { color: var(--fg); }
+
+/* CAE block (TPU 8i) + VMEM emphasis */
+.cae { flex: 1; background: color-mix(in srgb, var(--g2) 22%, var(--core-bg)); color: var(--fg);
+  border: 1.5px solid var(--g2); font-weight: 700; }
+.u.big { background: color-mix(in srgb, var(--g2) 24%, var(--unit)); border: 1.5px solid var(--g2); }
+.x3 { font-size: 10px; font-weight: 800; color: var(--g2); background: color-mix(in srgb, var(--g2) 18%, transparent);
+  border-radius: 4px; padding: 0 4px; margin-left: 2px; }
+
 /* side columns */
 .side { flex: none; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 14px; text-align: center; padding: 8px; }
 .host { width: 78px; height: 92px; background: var(--amber); color: var(--amber-fg); }

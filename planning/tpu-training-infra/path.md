@@ -38,7 +38,7 @@ blueprint-first: this doc → a plan per topic → topic by topic, signing off e
 
 | ID | Topic (`id`) | What / How / Why | Hard-Knocks Lab | Visual / lab | Status |
 |----|--------------|------------------|-----------------|--------------|--------|
-| 1.1 | `why-tpus` | "The box": you SSH into a host CPU sitting in front of the accelerator; the TPU VM model, chip anatomy (TensorCore/MXU/SparseCore/HBM), the scale ladder | — | sim `tpu-vm-anatomy` | on staging |
+| 1.1 | `why-tpus` | "The box": you SSH into a host CPU sitting in front of the accelerator; the TPU VM model, chip anatomy (TensorCore/MXU/SparseCore/HBM), the scale ladder, and the **8th-gen split (8t training / 8i inference)** | — | sim `tpu-vm-anatomy` (**8t↔8i toggle**) | on staging |
 | 1.2 | `tpu-chip-systolic-array` | "The silicon": data streams through the systolic array in bf16 on a diagonal wavefront, reusing inputs without constant memory access | Calculate arithmetic intensity for matrix sizes on v5p vs v6e | sim `systolic-array` · lab (**sim**) | on staging |
 | 1.3 | `tpu-v5p-topology` | ICI vs DCN; 2D torus (v6e) vs 3D torus (TPU7x); shape dictates network diameter; know when a collective rides ICI vs DCN | — | sim `torus-3d` (reuse) | published |
 | 1.4 | `tpu-provisioning-vm` | Execute on the host attached to the TPU; provision via GKE + Kueue + DWS Flex-start; MTU/capacity config | (provision a TPU VM + run on the host) | figure + lab (**codelab**) | planned |
@@ -68,7 +68,7 @@ blueprint-first: this doc → a plan per topic → topic by topic, signing off e
 | ID | Topic (`id`) | What / How / Why | Hard-Knocks Lab | Visual / lab | Status |
 |----|--------------|------------------|-----------------|--------------|--------|
 | 4.1 | `fault-tolerance` | Training loops that survive hardware death; GKE node health + automated JobSet restarts | Chaos script kills nodes/slices mid-run — must auto-reload the latest Orbax checkpoint and resume, no human | lab (**codelab**) | planned |
-| 4.2 | `bare-metal-control` | Bypass managed abstractions; All Capacity Mode for full topology visibility; route around faulty hosts/optical links. **Context: TPU 8i Boardfly topology vs v6e/v5p torus** | — | figure + lab (**codelab**) | planned |
+| 4.2 | `bare-metal-control` | Bypass managed abstractions; All Capacity Mode for full topology visibility; route around faulty hosts/optical links. **Context: TPU 8i Boardfly (OCS, ~7 hops across 1,024 chips, −56% diameter) vs the v5p/8t 3D torus (16 hops)** | — | figure + lab (**codelab**) | planned |
 | 4.3 | `pallas-kernels` | Low-level kernels in Python; manage the memory hierarchy to bypass XLA fusions; for novel architectures / MoE routing | — | **sim: Host RAM → HBM → VMEM → MXU tiers + the latency tax** · lab (**codelab**) | planned |
 | 4.4 | `inference-serving` | The capstone: deploy with vLLM-TPU, quantize with Qwix; optimize for TTFT/latency, not just MFU | — | sim: quant/serving trade-off · lab (**codelab**) | planned |
 

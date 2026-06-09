@@ -18,9 +18,11 @@ flashcards:
   - front: The scale ladder
     back: chip (1+ TensorCores) → host (the VM) → slice → Pod (chips wired by ICI into a 3D torus) → Multislice (slices joined over the slower DCN).
   - front: SparseCore
-    back: A dedicated unit (introduced on v4; present on v5p, v6e, v7) that accelerates very large embedding lookups — the heavy part of recommendation/ranking models and mixture-of-experts routing.
+    back: A dedicated unit (introduced on v4; on v5p, v6e, v7, and the training-focused TPU 8t) that accelerates very large embedding lookups — the heavy part of recommendation/ranking and MoE routing. On the inference-focused TPU 8i it is replaced by a CAE.
+  - front: CAE (Collectives Acceleration Engine)
+    back: The block on TPU 8i (inference) that replaces the four SparseCores — it aggregates results across cores with near-zero latency, cutting on-chip collective latency ~5×. Crucial for fast auto-regressive decoding and chain-of-thought.
   - front: Choosing a generation
-    back: Roughly — v5e and v6e (Trillium) for cost-efficient inference; v5p for high-performance training; v6e/v7 widen the MXU to 256×256. Match the chip to training vs serving and to model size.
+    back: The 8th gen splits the chip by workload — TPU 8t (training, SparseCore, 3D torus) vs TPU 8i (inference, CAE, Boardfly, 3× SRAM). Lineage — v5e/v6e for inference, v5p/v7 (Ironwood) for training. Match the chip to training vs serving.
 quiz:
   - question: What kind of processor is a TPU?
     choices:
@@ -43,6 +45,13 @@ quiz:
       - The Inter-Chip Interconnect (ICI)
     answer: 2
     explanation: ICI links chips into a slice and Pod (a 3D torus). Only crossing between slices (Multislice) falls back to the slower DCN.
+  - question: On the 8th-generation inference chip (TPU 8i), what replaces the SparseCores found on the training chip (TPU 8t)?
+    choices:
+      - A Collectives Acceleration Engine (CAE) — plus 3× the on-chip SRAM for the KV cache
+      - A second host CPU
+      - More HBM and nothing else
+    answer: 0
+    explanation: The 8th gen splits the chip by workload. TPU 8i drops the embedding-focused SparseCores for a CAE that cuts collective latency ~5×, and triples on-chip SRAM to hold the KV cache — tuned for serving, not training.
 status: draft
 ---
 
@@ -108,16 +117,23 @@ the topology topic makes the Pod concrete.
 
 ## Which TPU, and when
 
-Generations trade off compute, memory, and topology:
+The **8th generation** makes this topic's point loudest: it **splits the chip by
+workload** into two parts you choose between.
 
-- **v5e** and **v6e (Trillium)** — cost-efficient, tuned for **inference** and
-  smaller training runs.
-- **v5p** — high-performance **training**, with <Term id="sparsecore">SparseCores</Term>.
-- **v6e / v7 (Ironwood)** — widen the MXU to **256×256** (4× the MACs per cycle).
+- **TPU 8t — training.** Keeps <Term id="sparsecore">SparseCores</Term> (for
+  embeddings) plus an LLM decoder engine, on a 3D-torus network; built for
+  pre-training at superpod scale.
+- **TPU 8i — inference.** Swaps the SparseCores for a
+  <Term id="cae">Collectives Acceleration Engine (CAE)</Term> (≈5× lower on-chip
+  collective latency), carries **3× the on-chip SRAM** (384 MB) to hold the KV cache,
+  and uses the **Boardfly** network (≈7 hops across 1,024 chips vs 16 on a torus).
 
-<Term id="sparsecore">SparseCore</Term> accelerates the giant embedding lookups in
-recommendation/ranking and mixture-of-experts routing. Rule of thumb: dense
-transformer **training** → v5p / Trillium; **serving** → v5e / v6e.
+The same training-vs-inference logic runs back through the lineage: **v5e / v6e
+(Trillium)** for cost-efficient **inference**, **v5p / v7 (Ironwood)** for
+**training** (Ironwood widened the MXU to 256×256). <Term id="sparsecore">SparseCore</Term>
+accelerates the giant embedding lookups in recommendation/ranking and MoE routing.
+The takeaway isn't the part numbers — it's that *the box is tailored to the
+workload*, which is why you reason about training vs serving from the silicon up.
 
 ## Why this matters
 
@@ -138,7 +154,7 @@ Click **Host**, then **PCIe**, then the **chip**. Explain in one sentence why
 there's no network hop between your program and the accelerator.
 </Step>
 <Step title="Pick a generation">
-Say whether you'd reach for **v5e** or **v5p** to (a) serve a Gemma model and
-(b) pre-train a new LLM — and why.
+Say whether you'd reach for a **TPU 8i** or a **TPU 8t** to (a) serve a Gemma model
+and (b) pre-train a new LLM — and name the one silicon difference that decides it.
 </Step>
 </Steps>
