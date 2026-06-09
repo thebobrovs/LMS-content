@@ -3,15 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TPU v5p scale hierarchy</title>
+    <title>TPU scale hierarchy</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <main id="app" aria-label="TPU v5p scale hierarchy simulation"></main>
-    <!-- Classic (non-module) scripts: the sim runs in a sandboxed, opaque-origin
-         iframe (sandbox="allow-scripts", no allow-same-origin). ES module scripts
-         are fetched with CORS and would be blocked from a null origin, so the SDK
-         exposes a global `createSim` and these load as classic scripts. -->
+    <main id="app" aria-label="TPU scale hierarchy — chip to Multislice"></main>
     <script src="./sim-sdk.js"></script>
     <script src="./main.js"></script>
   </body>
