@@ -66,6 +66,15 @@ makes it fast isn't a faster multiplier. It's a layout — the
 <Term id="systolic array">systolic array</Term> — that **reads each input from
 memory once and reuses it** across thousands of multipliers.
 
+<Callout type="tip">
+**Run it yourself.** This lesson has a companion
+[Colab notebook](https://colab.research.google.com/github/thebobrovs/LMS-content/blob/main/notebooks/tpu-chip-systolic-array.ipynb)
+where you measure the data reuse below, watch fp16 overflow where bf16 holds, find
+the roofline ridge, and trigger the padding trap — in real JAX. It runs on the
+default **CPU** runtime; the closing benchmark also lights up on a free **`v5e-1`
+TPU** runtime (`Runtime → Change runtime type`).
+</Callout>
+
 ## The problem: a CPU re-fetches everything
 
 On a general-purpose CPU (the von Neumann model), every arithmetic step is in
