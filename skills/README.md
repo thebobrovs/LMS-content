@@ -17,6 +17,7 @@ they govern. Authoring a lesson runs in this repo's root layout (`topics/`,
 | [`lms-authoring-topics`](lms-authoring-topics/SKILL.md) | Write or edit a **lesson** — one topic = one `.mdx` = one graph node. Frontmatter, MDX components, flashcards/quizzes, steps, images, glossary terms. |
 | [`lms-authoring-paths`](lms-authoring-paths/SKILL.md) | Curate a **learning path** — group topics into ordered levels (100/200/300). |
 | [`lms-authoring-simulations`](lms-authoring-simulations/SKILL.md) | Build an **embedded simulation** (these live in the app repo's `simulations/packages/`). |
+| [`lms-authoring-images`](lms-authoring-images/SKILL.md) | Generate a **topic illustration** (AI image) in the Hyperstack house style — the reusable style block, per-image subject template, and how to wire it into a lesson. |
 
 See also [`../personas/`](../personas) (the SME experts) and
 [`../pipeline/`](../pipeline) (`validate.mjs`, `promote.mjs`, `AUDIT.md`).
