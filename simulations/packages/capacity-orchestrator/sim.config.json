@@ -1,7 +1,7 @@
 {
   "id": "capacity-orchestrator",
   "title": "TPU capacity orchestrator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "props": {},
   "checkpoints": [
     { "id": "observe-capacity", "hint": "Deploy the same job on Spot, then on DWS Flex Start — watch Spot get preempted and restart, and compare the total cost in the run history. The cheapest hourly rate isn't always the cheapest run." }
