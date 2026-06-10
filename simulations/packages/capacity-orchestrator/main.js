@@ -11,8 +11,8 @@ const SLICE_CONFIG = {
 };
 
 const MODE_CONFIG = {
-  dws: { label: "DWS · Flex Start", multiplier: 0.4, queueTicks: 40, speed: 0.7, preemptAt: [] },
-  calendar: { label: "DWS · Calendar", multiplier: 0.65, queueTicks: 30, speed: 0.7, preemptAt: [] },
+  dws: { label: "DWS · Flex Start", multiplier: 0.47, queueTicks: 40, speed: 0.7, preemptAt: [] },
+  calendar: { label: "DWS · Calendar", multiplier: 0.7, queueTicks: 20, speed: 0.7, preemptAt: [] },
   spot: { label: "Spot", multiplier: 0.25, queueTicks: 0, speed: 0.7, preemptAt: [42, 68] },
   ondemand: { label: "On-demand", multiplier: 1.0, queueTicks: 0, speed: 0.7, preemptAt: [] },
 };
