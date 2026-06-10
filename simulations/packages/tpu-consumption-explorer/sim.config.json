@@ -1,0 +1,9 @@
+{
+  "id": "tpu-consumption-explorer",
+  "title": "Cloud TPU consumption explorer",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-consumption", "hint": "Switch between Direct TPU VM, GKE, and Vertex — watch the stack shift from 'you manage it' to 'managed for you', and notice storage and networking are always there underneath." }
+  ]
+}
