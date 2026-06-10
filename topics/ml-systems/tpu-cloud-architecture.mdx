@@ -1,0 +1,125 @@
+---
+title: Cloud TPU Architecture — how you consume TPUs
+summary: Zoom out from the chip to the cloud. How TPUs are delivered as host+chip VM units, the three paths you consume them through (direct TPU VM, GKE, Vertex / Agent Platform), single/multi/sub-host workloads, and how they wire into the rest of Google Cloud.
+tags: [ml-systems, hardware, infrastructure]
+difficulty: beginner
+estimatedMinutes: 10
+level: 100
+prerequisites: []
+relatedTo: [ml-systems/why-tpus, ml-systems/tpu-provisioning-vm]
+videos: []
+flashcards:
+  - front: What do you actually consume on Cloud TPU?
+    back: Not a bare chip — a TPU VM, i.e. a host VM with attached TPU chips. You schedule host+chip units and run JAX / PyTorch-XLA on the host; the heavy compute stays on-chip.
+  - front: The three consumption paths (control vs convenience)
+    back: Direct TPU VM (full control, SSH, you manage everything) → GKE (containerized, orchestrated, auto provision/scale/heal — production at scale) → Vertex AI / Agent Platform (fully managed jobs, tuning and serving — least ops, least control).
+  - front: Single- vs multi- vs sub-host
+    back: Single-host — one TPU VM (small slices). Multi-host — a slice spanning several VMs, chips wired by ICI, host processes rendezvous over DCN (big models). Sub-host — only a portion of a host's chips (e.g. 1 of 4) for granular, cost-saving jobs.
+  - front: How do TPUs connect to the rest of Google Cloud?
+    back: Storage feeds the chips (GCS, Hyperdisk ML, Filestore/Lustre); the VPC/DCN carries host-to-host traffic; IAM and monitoring wrap it. The TPU VM is the unit; everything else is the supporting cloud stack.
+quiz:
+  - question: When you "use a Cloud TPU", what do you get access to?
+    choices:
+      - A bare TPU chip you flash a binary onto
+      - A host VM with attached TPU chips (a TPU VM)
+      - A remote API you send each operation to
+    answer: 1
+    explanation: You consume host+chip units — a Linux host VM wired to the chips. Your code runs on the host and dispatches to the TPU; there is no bare-chip access and no per-op network hop.
+  - question: You want production training at scale — containerized, auto-scaled, multi-host — with the least custom ops glue. Which path?
+    choices:
+      - Direct TPU VM (SSH and manage it yourself)
+      - GKE (it provisions, scales, heals, and gang-schedules the TPU nodes)
+      - A spreadsheet of gcloud commands
+    answer: 1
+    explanation: GKE runs Cloud TPU nodes and manages provisioning, scaling, scheduling, repair and upgrades — the orchestrated path for production. Direct TPU VM gives the most control but you manage everything; Vertex is the most managed.
+  - question: A small job needs only one chip, but the host has four. What workload shape is that?
+    choices:
+      - Multi-host
+      - Sub-host
+      - Multislice
+    answer: 1
+    explanation: A sub-host workload uses only a portion of a host's chips (here 1 of 4) — granular control and cost optimization. Multi-host spans several VMs; Multislice joins several slices over the DCN.
+status: published
+---
+
+## The one-line summary
+
+You've seen what a TPU *is* — the chip, the MXU, the pod. But you never rent a bare
+chip. TPUs are delivered as **host + chip VM units** you consume through one of a few
+**paths**, and you shape jobs as **single-, multi-, or sub-host**. This is the
+zoom-out: where TPUs sit in Google Cloud, and how you actually reach them.
+
+## The unit: a TPU VM
+
+A <Term id="tpu vm">TPU VM</Term> is a **host VM with attached TPU chips**. You don't
+get the silicon directly — you get the host, SSH in, run your JAX or PyTorch-XLA
+program, and it dispatches the heavy compute to the chips (no per-operation network
+hop). Everything below is just *how you get and orchestrate these host+chip units*.
+
+## Three ways to consume them
+
+The same TPU VM can be reached three ways, trading **control for convenience**. Pick a
+path below and watch the stack shift between "you manage it" and "managed for you" —
+and notice **storage** and **networking** are always there underneath:
+
+<Simulation id="tpu-consumption-explorer" height={520} />
+
+- **Direct TPU VM** — request the VM (`gcloud` / Queued Resources), SSH in, run your
+  code. **Full control**, you manage everything. Best for research and custom stacks.
+- **GKE** — package your job in a container; **GKE** provisions, scales, heals, and
+  gang-schedules the TPU nodes (this is the XPK → Kueue path you'll meet in the next
+  lesson). The orchestrated path for **production training and serving at scale**.
+- **Vertex AI / Agent Platform** — hand Google a job spec; it runs **fully managed**
+  training, tuning, and serving (Vertex is folding into the Gemini **Agent Platform**).
+  The **least ops**, the least control.
+
+No matter the path, underneath it's the same TPU VM architecture.
+
+## Workload shape: single-, multi-, sub-host
+
+A second axis is *how many* hosts and chips one job uses:
+
+- **Single-host** — one TPU VM. Small slices fit on a single host. Simplest.
+- **Multi-host** — a slice that **spans several TPU VMs**, their chips wired together by
+  <Term id="ici">ICI</Term> inside one pod; the host *processes* rendezvous over the
+  <Term id="dcn">DCN</Term>. Essential for large, distributed training.
+- **Sub-host** — use only a **portion** of a host's chips (e.g. 1 of 4) — granular
+  control and cost optimization for small jobs.
+
+(Join several *slices* over the DCN and you're back to
+<Term id="multislice">Multislice</Term> from the topology lesson.)
+
+## The rest of the cloud stack
+
+The TPU VM is the centerpiece, but it never runs alone — a few Google Cloud pieces are
+**always** in the picture (we go deep on these later; here's the map):
+
+- **Storage** feeds the chips. A slice with no fast disk just starves — input pipelines
+  read from **GCS**, **Hyperdisk ML**, Filestore, or Managed Lustre.
+- **Networking** — the **VPC / <Term id="dcn">DCN</Term>** carries host-to-host traffic
+  for multi-host jobs and checkpointing (the firewall/MTU detail is a next-lesson trap).
+- **IAM, monitoring, logging** wrap all of it.
+
+## Why this matters
+
+This is the map the *mechanics* hang on. The next lesson — provisioning — is all about
+**getting** these host+chip units (XPK → Kueue → DWS) and **paying** for them (the
+capacity modes). It only makes sense once you see the landscape: a TPU VM as the unit,
+a path to consume it, a shape for the job, and the storage + network around it.
+
+## Put it together
+
+<Steps>
+<Step title="Place the unit">
+In the explorer, switch to **Direct TPU VM** and name, in one sentence, exactly what
+you'd have root access to — and what you would *not*.
+</Step>
+<Step title="Pick a path">
+For (a) a custom research run and (b) managed production serving with minimal ops, name
+the path you'd choose and the one thing you trade away.
+</Step>
+<Step title="Shape the job">
+Toggle **single → multi → sub-host**. Say which one a 2,000-chip training run needs, and
+which network binds its chips.
+</Step>
+</Steps>
