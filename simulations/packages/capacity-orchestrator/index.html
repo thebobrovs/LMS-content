@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TPU capacity orchestrator</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="TPU capacity orchestrator">
+      <div class="control-panel">
+        <div class="control-group">
+          <div class="control-label">1 · Target slice</div>
+          <div class="btn-grid" id="slice-btns">
+            <button class="opt-btn active" data-slice="v6e">v6e-256 (Trillium)<span>256 chips · 32 hosts</span></button>
+            <button class="opt-btn" data-slice="v5p">v5p-1024 (training)<span>1024 chips · 128 hosts</span></button>
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="control-label">2 · Capacity mode</div>
+          <div class="btn-grid" id="mode-btns">
+            <button class="opt-btn active" data-mode="dws">DWS · Flex Start<span>Queued · low cost · ≤7 days</span></button>
+            <button class="opt-btn" data-mode="calendar">DWS · Calendar<span>Scheduled · guaranteed start</span></button>
+            <button class="opt-btn" data-mode="spot">Spot / preemptible<span>Instant · cheapest · risky</span></button>
+            <button class="opt-btn" data-mode="ondemand">On-demand<span>Instant · reliable · full price</span></button>
+          </div>
+          <div class="calendar-input" id="cal-input">
+            <div class="cal-label">Booked reservation</div>
+            <div class="cal-value"><span id="cal-date-display">…</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="deploy-btn" id="btn-deploy">▶ Deploy via XPK</button>
+        <button class="stop-btn" id="btn-stop" style="display:none;">Abort run</button>
+        <span class="illus">Costs are illustrative (relative), not real pricing.</span>
+      </div>
+
+      <div class="telemetry">
+        <div class="tele-left">
+          <div class="dashboard-card">
+            <div class="control-label">Job execution pipeline</div>
+            <div class="track-container" id="track-container">
+              <div class="track-label" id="track-text">Idle — awaiting submission</div>
+              <div class="track-fill" id="track-bar"></div>
+            </div>
+            <div class="stat-grid">
+              <div class="stat-box"><div class="control-label">Cumulative cost</div><div class="stat-val money" id="stat-cost">$0.00</div></div>
+              <div class="stat-box"><div class="control-label">Training progress</div><div class="stat-val time" id="stat-prog">0.0%</div></div>
+            </div>
+          </div>
+          <div class="dashboard-card">
+            <div class="control-label">Run history &amp; cost</div>
+            <div class="history-table" id="history-list">
+              <div class="muted hint-row">No runs yet. Deploy the same job across modes to compare cost outcomes.</div>
+            </div>
+          </div>
+        </div>
+        <div class="dashboard-card logcard">
+          <div class="event-log" id="log-view">
+            <div class="log-line">System ready. Awaiting XPK payload…</div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>
