@@ -71,13 +71,18 @@ things actually decide it: **how long the job runs** and **whether it tolerates
 interruption** — because Dynamic Workload Scheduler (<Term id="dws flex-start">DWS</Term>)
 has *two* modes, each capped by duration.
 
-| Mode | Max run time | Preemptible? | Best for |
-| --- | --- | --- | --- |
-| On-demand | unbounded | No | a small slice you need *now*, no commitment |
-| Reservation | committed term | No | long runs that need a guarantee |
-| Spot | until preempted | **Yes** | cheap, fault-tolerant jobs that checkpoint often |
-| DWS · Flex Start | **≤ 7 days** | No (once started) | bursty work, flexible start — queued, low cost |
-| DWS · Calendar | **1–90 days** | No | a *scheduled* run that needs a guaranteed start time |
+| Mode | Max run time | Preemptible? | vs on-demand | Best for |
+| --- | --- | --- | --- | --- |
+| On-demand | unbounded | No | full price | a small slice you need *now*, no commitment |
+| Reservation | 1–3 yr (CUD) | No | **30–55% off** | long runs that need a guarantee |
+| Spot | until preempted | **Yes** | ~60–90% off | cheap, fault-tolerant jobs that checkpoint often |
+| DWS · Flex Start | **≤ 7 days** | No (once started) | up to ~53% off | bursty work, flexible start — queued |
+| DWS · Calendar | **1–90 days** | No | **up to 30% off** | a *scheduled* run, guaranteed start |
+
+So even Calendar is **cheaper than on-demand** — every mode but on-demand carries a
+discount ([TPU reservation docs](https://docs.cloud.google.com/tpu/docs/about-tpu-reservations)).
+The catch is Spot: its headline discount **erodes** once preemptions force restarts,
+which is what the orchestrator below makes visible.
 
 **Rule of thumb:** can it restart cleanly? → **Spot**. Otherwise go by length —
 **≤ 7 days, flexible start → Flex Start**; **a fixed start date, ≤ 90 days →
