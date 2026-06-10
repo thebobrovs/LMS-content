@@ -1,0 +1,118 @@
+---
+title: GPU or TPU? Choosing your accelerator
+summary: The first real question for any model isn't "how do I use a TPU" but "should I?" A practical decision — the portability-vs-peak-performance trade-off, whether XLA can compile your code, resource access, and the workload — routed through a simple decision tree.
+tags: [ml-systems, hardware, accelerators]
+difficulty: beginner
+estimatedMinutes: 9
+level: 100
+prerequisites: []
+relatedTo: [ml-systems/why-tpus, ml-systems/tpu-cloud-architecture]
+videos: []
+flashcards:
+  - front: The GPU-vs-TPU trade-off in one line
+    back: Optimize for one accelerator → peak performance but lock-in. Stay portable via XLA → flexibility and availability, at some code-change and sometimes performance cost. "TPU always wins" is false.
+  - front: What frameworks actually run on a TPU?
+    back: TPUs are XLA-based and JAX-first, with PyTorch-XLA also supported. (TensorFlow is legacy on TPU.) The gate is "can XLA compile it" — not "is it TensorFlow."
+  - front: When does a GPU win over a TPU?
+    back: Hand-tuned CUDA kernels / GPU-only ops (don't port through XLA); smaller, varied, or experimental workloads needing broad framework support; or when you simply can't get TPU capacity.
+  - front: When does a TPU win over a GPU?
+    back: Large-scale, matmul-heavy training (and serving at scale) on a JAX / PyTorch-XLA stack, where the systolic array's throughput and cost-per-FLOP at pod scale pay off — provided you can get the capacity.
+quiz:
+  - question: Which statement about TPU frameworks is correct today?
+    choices:
+      - TPUs only run Google's TensorFlow framework
+      - TPUs are XLA-based — JAX-first, with PyTorch-XLA — and the gate is whether XLA can compile your code
+      - TPUs run any CUDA kernel unchanged
+    answer: 1
+    explanation: Modern TPUs are XLA-based and JAX-first (PyTorch-XLA too); TensorFlow is legacy. The real question is whether XLA can compile/convert your model — not which framework wrote it.
+  - question: Your serving code relies on hand-written CUDA kernels for a custom op. GPU or TPU?
+    choices:
+      - TPU — it's faster
+      - GPU — hand-tuned CUDA kernels don't port through XLA
+      - Either, with no code changes
+    answer: 1
+    explanation: Hand-tuned CUDA / GPU-only ops don't compile through XLA, so they stay on the GPU. Portable (JAX / PyTorch-XLA) code is what opens the TPU path — usually with some code changes.
+  - question: You have a JAX model for large-scale training and can get a v5p slice. GPU or TPU?
+    choices:
+      - GPU — broader support
+      - TPU — XLA-ready, matmul-heavy, at scale, with capacity in hand
+      - Neither — you must pick CPUs
+    answer: 1
+    explanation: TPU-ready code + a large matmul-heavy workload + available capacity is exactly where a TPU's throughput and cost-per-FLOP at pod scale win.
+status: published
+---
+
+## The one-line summary
+
+You know what a TPU is and how you'd consume it. But the first real question for any
+model isn't *"how do I use a TPU"* — it's **"should I?"** And the honest answer is *it
+depends*: **TPU does not always win.** It comes down to what your code targets, whether
+**XLA** can compile it, whether you can *get* the hardware, and the workload itself.
+
+## The trade-off
+
+Every accelerator choice sits on one axis: **peak performance ↔ portability**.
+
+- **Optimize for one accelerator** (hand-tuned kernels) and you get the best speed — but
+  you're locked to that hardware.
+- **Stay portable** — write for **XLA** (the compiler both JAX and PyTorch-XLA target) —
+  and you gain flexibility and availability, at the cost of some code changes and
+  occasionally some peak performance.
+
+## First, the framework reality
+
+A common myth: *"TPUs are for TensorFlow."* **Not in 2026.** TPUs are **XLA-based and
+JAX-first**, with **PyTorch-XLA** also supported; TensorFlow is legacy on TPU. So the
+gate isn't *which framework* — it's **can XLA compile your code?** JAX and PyTorch-XLA
+compile cleanly; hand-written **CUDA** kernels do not.
+
+## The decision tree
+
+Walk it. Notice the branches that send you *away* from a TPU — they're the point:
+
+<Simulation id="gpu-or-tpu-decider" height={460} />
+
+The four questions underneath it:
+
+1. **What is your code optimized for?** JAX / PyTorch-XLA → TPU-ready. CUDA / GPU
+   kernels → GPU territory.
+2. **Can XLA compile/convert it?** Yes → the TPU path opens (expect *some* code changes).
+   No (hand-tuned CUDA) → GPU.
+3. **Can you get the resource?** Quota, region, capacity — the wall the next lesson is
+   about.
+4. **What's the workload?** Large-scale, matmul-heavy training → TPU shines. Smaller,
+   varied, broad-framework or experimental → GPU's flexibility wins.
+
+## When each wins
+
+| Reach for a **TPU** when… | Reach for a **GPU** when… |
+| --- | --- |
+| code is JAX / PyTorch-XLA (XLA-compilable) | code leans on hand-tuned CUDA / GPU-only ops |
+| the job is large-scale and matmul-heavy | the job is smaller, varied, or experimental |
+| you want cost-per-FLOP at pod scale | you need the broadest framework / kernel support |
+| you can get the capacity | you need it available, anywhere, now |
+
+## You don't always have to choose
+
+There's a third answer: run **both**, and let the platform switch. On GKE, *custom
+compute classes* can prioritise TPU nodes and fall back to GPU on demand, and serving
+libraries like vLLM can run on either — so a single deployment spans both. That's a
+real, powerful pattern, but it's an **advanced serving** topic (L300); for now, knowing
+*how to choose* is the foundation.
+
+## Put it together
+
+<Steps>
+<Step title="Route a CUDA model">
+In the decider, answer that your code is **CUDA / GPU-specific** and depends on custom
+kernels. Confirm the verdict — and say in one sentence *why* XLA is the reason.
+</Step>
+<Step title="Route a JAX model at scale">
+Walk the **JAX / PyTorch-XLA → large-scale → capacity available** path. Name the two
+TPU strengths that make it the right call.
+</Step>
+<Step title="Find the capacity branch">
+Reach the branch where you *can't reliably get TPU capacity*. What does it recommend,
+and what's the third option it hints at?
+</Step>
+</Steps>
