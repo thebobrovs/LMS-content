@@ -11,8 +11,8 @@ videos: []
 flashcards:
   - front: How you run a multi-host TPU job
     back: With XPK (Accelerated Processing Kit), Google's CLI — XPK → Kueue → GKE provisions DWS Flex-start nodes. You don't hand-submit raw Kubernetes pods for multi-host slices.
-  - front: DWS Flex-start
-    back: Dynamic Workload Scheduler, Flex-start mode — ephemeral, queued, low-cost capacity for bursty jobs. You wait in a queue, then get the slice for a bounded window. Contrast with reservation (committed, guaranteed) and Spot (cheapest, preemptible).
+  - front: Dynamic Workload Scheduler (DWS) — its two modes
+    back: DWS gets you scarce TPUs without a long-term commitment, in two modes. Flex Start — queued, flexible start, up to 7 days, not preempted once running (bursty work). Calendar — reserve a future window with a guaranteed start time, 1–90 days (scheduled runs). Contrast with Reservation (committed, long-term) and Spot (cheapest, preemptible any time).
   - front: Single-host vs multi-host slice
     back: A single-host slice is one TPU VM (small slices fit on one host). A multi-host slice is several VMs whose chips are wired by ICI — and the host processes must rendezvous over the DCN.
   - front: The networking a multi-host job needs (the trap)
@@ -66,17 +66,27 @@ JAX or PyTorch-XLA, and run.
 
 ## The capacity wall
 
-At scale you can't always *get* the chips — so you choose a **capacity mode**:
+At scale you can't always *get* the chips — so you choose a **capacity mode**. Two
+things actually decide it: **how long the job runs** and **whether it tolerates
+interruption** — because Dynamic Workload Scheduler (<Term id="dws flex-start">DWS</Term>)
+has *two* modes, each capped by duration.
 
-- **On-demand** — available now, full price.
-- **Reservation** — committed, guaranteed, never preempted (for long runs).
-- **Spot** — cheapest, but preemptible any time.
-- **<Term id="dws flex-start">DWS Flex-start</Term>** — ephemeral, **queued**, low
-  cost; not preempted once it starts (great for bursty experiments).
+| Mode | Max run time | Preemptible? | Best for |
+| --- | --- | --- | --- |
+| On-demand | unbounded | No | a small slice you need *now*, no commitment |
+| Reservation | committed term | No | long runs that need a guarantee |
+| Spot | until preempted | **Yes** | cheap, fault-tolerant jobs that checkpoint often |
+| DWS · Flex Start | **≤ 7 days** | No (once started) | bursty work, flexible start — queued, low cost |
+| DWS · Calendar | **1–90 days** | No | a *scheduled* run that needs a guaranteed start time |
 
-Pick a slice and a need and read off the recommendation:
+**Rule of thumb:** can it restart cleanly? → **Spot**. Otherwise go by length —
+**≤ 7 days, flexible start → Flex Start**; **a fixed start date, ≤ 90 days →
+Calendar**; **longer → a Reservation**; **just a few chips right now → On-demand**.
 
-<Simulation id="capacity-shape-selector" height={460} />
+Pick a slice, a need, and a **max run time** — then drag the run time past 7 days and
+watch Flex Start give way to Calendar, and past 90 days to a Reservation:
+
+<Simulation id="capacity-shape-selector" height={540} />
 
 ## The networking trap (DCN, not ICI)
 

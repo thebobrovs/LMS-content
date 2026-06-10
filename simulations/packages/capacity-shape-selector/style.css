@@ -38,3 +38,10 @@ body { background: var(--bg); color: var(--fg); font-family: ui-sans-serif, syst
 .brow { display: grid; grid-template-columns: 130px auto 1fr; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--border); margin-right: 3px; }
 .dot.on { background: var(--primary); }
+
+.rtrow { display: flex; align-items: center; gap: 12px; }
+.rtrow input[type="range"] { flex: 1; accent-color: var(--primary); }
+.rtval { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; }
+.fit { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.fit b { color: var(--fg); }
+.ruleout { font-size: 12.5px; color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); border-radius: 6px; padding: 6px 10px; margin-bottom: 12px; }
