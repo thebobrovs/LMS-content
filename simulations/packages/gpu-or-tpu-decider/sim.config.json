@@ -1,0 +1,9 @@
+{
+  "id": "gpu-or-tpu-decider",
+  "title": "GPU or TPU? decision tree",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-decision", "hint": "Walk the tree to a verdict. Notice it's not 'TPU always wins' — hand-tuned CUDA, smaller/varied workloads, or no TPU capacity all route you to a GPU." }
+  ]
+}
