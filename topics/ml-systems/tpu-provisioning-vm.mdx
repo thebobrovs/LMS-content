@@ -83,10 +83,12 @@ has *two* modes, each capped by duration.
 **≤ 7 days, flexible start → Flex Start**; **a fixed start date, ≤ 90 days →
 Calendar**; **longer → a Reservation**; **just a few chips right now → On-demand**.
 
-Pick a slice, a need, and a **max run time** — then drag the run time past 7 days and
-watch Flex Start give way to Calendar, and past 90 days to a Reservation:
+But the cheapest *rate* isn't always the cheapest *run*. Deploy the same job on
+**Spot**, then on **Flex Start**, and compare the total cost in the run history —
+once Spot's preemptions and restarts are paid for, and once Calendar's reserved
+window is billed whether the job uses it or not:
 
-<Simulation id="capacity-shape-selector" height={540} />
+<Simulation id="capacity-orchestrator" height={640} />
 
 ## The networking trap (DCN, not ICI)
 

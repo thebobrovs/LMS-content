@@ -1,9 +1,0 @@
-{
-  "id": "capacity-shape-selector",
-  "title": "TPU capacity & shape selector",
-  "version": "2.0.0",
-  "props": {},
-  "checkpoints": [
-    { "id": "observe-capacity", "hint": "Pick a slice, a need, and a max run time — then drag the run time past 7 days and watch DWS Flex Start give way to Calendar, and past 90 days to a Reservation." }
-  ]
-}
