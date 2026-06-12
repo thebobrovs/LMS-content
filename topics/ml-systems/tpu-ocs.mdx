@@ -1,0 +1,117 @@
+---
+title: OCS — Light Is the Network
+summary: A TPU pod doesn't rewire itself with cables or packet switches — it tilts microscopic mirrors and steers laser beams. How the Optical Circuit Switch turns mirror angles into topology, slices pods, heals around dead cubes, and reshapes the network per job.
+tags: [ml-systems, hardware, networking]
+difficulty: intermediate
+estimatedMinutes: 8
+level: 100
+prerequisites: []
+relatedTo: [ml-systems/tpu-topologies, ml-systems/tpu-evolution-bottlenecks]
+videos: []
+flashcards:
+  - front: What does an OCS actually switch?
+    back: Light, not packets. A MEMS mirror tilts and steers a laser beam from one cube's transmit fiber to another's receive fiber. No packet inspection, no optical-to-electrical conversion — rate-agnostic glass.
+  - front: The unit of OCS reconfiguration
+    back: The cube — a 4×4×4 block of 64 chips, hard-wired electrically inside. Only the cube's 48 optical in/out pairs reach the OCS layer, so the pod reconfigures (and heals) at cube granularity, never chip granularity.
+  - front: Spare-cube repair — what actually happens
+    back: Drop the 2 circuits into the dead cube, raise 2 new ones to the hot spare — 4 mirror moves, a few milliseconds, and the job's torus shape is preserved.
+  - front: What does the OCS layer cost?
+    back: Less than 5% of system cost and about 3% of power (TPU v4 ISCA paper) — in exchange for slicing, healing, and per-job reshaping of a 4,096-chip pod.
+quiz:
+  - question: To change which cube talks to which, what physically changes?
+    choices:
+      - Packet routing tables
+      - Tiny mirror angles
+      - Technicians re-cabling
+    answer: 1
+    explanation: The data path is pure glass and mirrors. There's no packet inspection and no optical→electrical→optical conversion inside the switch — which is why the OCS doesn't care what rate the links run at.
+  - question: Two jobs run on two OCS-sliced partitions of one pod. Why can't they congest each other?
+    choices:
+      - Priority queues throttle them
+      - They share no optical links at all
+      - Their packets are smaller
+    answer: 1
+    explanation: Each circuit is a dedicated physical light path. Two slices share nothing, so isolation is guaranteed by optics — no QoS configuration can leak bandwidth between them.
+  - question: In an OCS fabric, what makes two cubes "neighbors"?
+    choices:
+      - Physical distance between racks
+      - The current mirror configuration
+      - Cable length matching
+    answer: 1
+    explanation: Topology is decoupled from geography. The scheduler grabs whichever healthy cubes are free — even scattered across the floor — and the mirrors warp them into a contiguous torus.
+  - question: Why are circuits programmed per-job rather than per-packet?
+    choices:
+      - Mirrors take milliseconds to settle
+      - Lasers overheat if switched fast
+      - Licensing limits reconfigurations
+    answer: 0
+    explanation: A MEMS mirror settles in ~milliseconds — geological time for a packet, instant for a job that runs for weeks. So the topology is set once at job start. That trade is the heart of circuit switching.
+status: published
+---
+
+## The one-line summary
+
+You met the <Term id="ocs">OCS</Term> in the evolution story — V4's answer to pods too
+big for static copper. Here's the part that sounds like science fiction: a TPU pod
+**rewires itself by tilting microscopic mirrors**. The network *is* light, and
+topology is just the current mirror configuration.
+
+## Two views of the same photons
+
+The explorer below shows both panes at once: on the left, the **logical topology**
+software sees; on the right, the **Palomar OCS** — a matrix of MEMS mirrors — that
+photons see. The same pulse is drawn in both. Walk the five operations:
+
+<Simulation id="tpu-ocs-explorer" height={1050} />
+
+1. **Global ring** — a photon leaves a cube face, bounces off *one mirror*, lands at
+   the next cube. The switch never reads the data.
+2. **Pod slicing** — re-tilt the mirrors and one supercomputer becomes two. The
+   slices share **zero** optical links: isolation enforced by physics, not QoS.
+3. **Cross-rack jobs** — logical neighbors ≠ physical neighbors. Any healthy cubes,
+   anywhere on the floor, can be warped into a contiguous slice.
+4. **Spare-cube repair** — when a cube dies, drop 2 circuits, raise 2 to the hot
+   spare: **4 mirror moves** and the job keeps its torus shape.
+5. **Topology shuffle** — every press is a new network, born purely from mirror
+   angles. Circuits are set **per job**, never per packet.
+
+## Why the cube is the unit
+
+Inside a 4×4×4 cube, all 64 chips are **hard-wired electrically** — that never
+changes. Only the cube's **48 optical in/out pairs** rise to the OCS layer. So
+everything the OCS does — slicing, healing, reshaping — happens at **cube
+granularity**. (The explorer shows 8 of 64 cubes and 1 of 6 link dimensions; the
+real pod runs that picture six times in parallel, which is how it builds full — even
+*twisted* — 3D toruses.)
+
+## What it costs, what it buys
+
+The entire OCS layer is **under 5% of system cost and ~3% of power** (per the TPU v4
+paper) — and in exchange the pod gains slicing, fault-healing, and per-job topology.
+That's why the evolution lesson called OCS *the only way to physically wire a
+100×-pod*: a static harness of this size would fail constantly; mirrors route around
+death in milliseconds.
+
+## Why this matters
+
+Every idea later in the path leans on this: slices of arbitrary shape (topologies),
+schedulers that build them from whatever's healthy (provisioning), and Multislice
+jobs that treat pods as LEGO. Once you've seen that *topology is software*, none of
+those feel arbitrary.
+
+## Put it together
+
+<Steps>
+<Step title="Slice the pod">
+Switch to **pod slicing** and explain in one sentence why Job A physically cannot
+slow down Job B — without mentioning QoS.
+</Step>
+<Step title="Predict the repair">
+Before pressing **run the failure**: how many mirrors must move to splice the spare
+in? Run it and check your prediction against the *mirrors moved* telemetry.
+</Step>
+<Step title="Shuffle and reflect">
+Press **topology shuffle** a few times. Why is "the network reconfigures in
+milliseconds" fast enough for training jobs but useless for packet switching?
+</Step>
+</Steps>

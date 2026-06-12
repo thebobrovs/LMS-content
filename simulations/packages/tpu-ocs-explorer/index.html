@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OCS — light is the network</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="OCS explorer — logical topology beside the mirror matrix">
+      <div class="telemetry" aria-label="OCS controller telemetry">
+        <div class="tcell"><div class="k">Link state</div><div class="v"><span id="linkBadge"><span class="dot"></span><span id="linkText">STABLE</span></span></div></div>
+        <div class="tcell"><div class="k">Mirrors moved (last event)</div><div class="v" id="tMirrors">0</div></div>
+        <div class="tcell"><div class="k">Reconfig events</div><div class="v" id="tEvents">0</div></div>
+        <div class="tcell"><div class="k">Circuits-down clock</div><div class="v"><span id="tDown">0</span> <small>ms anim · real ≈ ms</small></div></div>
+        <div class="tcell"><div class="k">Active circuits</div><div class="v" id="tCirc">0 / 8</div></div>
+      </div>
+
+      <nav class="modes" aria-label="Operation modes">
+        <button class="chip active" data-mode="ring">1 · global ring</button>
+        <button class="chip" data-mode="slice">2 · pod slicing</button>
+        <button class="chip" data-mode="tenant">3 · cross-rack jobs</button>
+        <button class="chip" data-mode="fail">4 · spare-cube repair</button>
+        <button class="chip" data-mode="random">5 · topology shuffle</button>
+        <button class="chip run" id="runFail" hidden>▶ run the failure</button>
+      </nav>
+
+      <div class="explain" id="explanation"></div>
+
+      <div class="canvas-wrap">
+        <canvas id="simCanvas" width="1100" height="620" role="img" aria-label="Animated dual view: TPU cube topology on the left, the optical circuit switch mirror matrix on the right"></canvas>
+      </div>
+
+      <div class="facts" aria-label="Real TPU v4 numbers">
+        <div class="fact"><div class="n">4,096</div><div class="d">chips per TPU v4 pod — 64 cubes of 64 chips (4×4×4)</div></div>
+        <div class="fact"><div class="n">48</div><div class="d">optical in/out pairs leaving each cube for the OCS layer</div></div>
+        <div class="fact"><div class="n">~ms</div><div class="d">mirror settle time — circuits are set per job, never per packet</div></div>
+        <div class="fact"><div class="n">&lt;5% · ~3%</div><div class="d">of system cost · of power spent on the entire OCS layer</div></div>
+        <div class="fact"><div class="n">0</div><div class="d">optical-to-electrical conversions inside the switch — rate-agnostic glass</div></div>
+      </div>
+
+      <div class="disclaimer">
+        <strong>Fidelity note:</strong> each node here is a full 4×4×4 cube (≈ one rack) — the cube, not the chip, is the unit of OCS reconfiguration; chips inside a cube are hard-wired electrically. We show 8 of 64 cubes and 1 of 6 link dimensions; the real pod runs this picture six times in parallel, which is how scattered cubes get warped into perfect (even twisted) 3D toruses.
+      </div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

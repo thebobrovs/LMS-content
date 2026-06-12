@@ -1,0 +1,9 @@
+{
+  "id": "tpu-ocs-explorer",
+  "title": "OCS — light is the network",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-ocs", "hint": "Arm the spare-cube mode and run the failure — watch the telemetry count exactly four mirror moves as the spare is spliced in and the ring heals." }
+  ]
+}
