@@ -94,5 +94,11 @@
   },
   "hyperdisk ml": {
     "definition": "High-throughput attached storage for ML on GCP (alongside Filestore / Managed Lustre) — you attach it so the chips aren't data-starved; it's what the input pipeline reads from."
+  },
+  "xla": {
+    "definition": "Accelerated Linear Algebra — the compiler that turns your traced JAX (or PyTorch-XLA) graph, expressed as StableHLO, into optimized TPU machine code. It fuses ops, lays out memory, and targets TPU/GPU/CPU from the same program."
+  },
+  "fusion": {
+    "definition": "An XLA optimization that merges a chain of operations (e.g. matmul + bias + activation) into a single kernel, so intermediate results stay on-chip instead of round-tripping through HBM. Same FLOPs, far fewer bytes moved — higher arithmetic intensity."
   }
 }

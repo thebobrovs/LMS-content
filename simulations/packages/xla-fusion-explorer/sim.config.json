@@ -1,0 +1,9 @@
+{
+  "id": "xla-fusion-explorer",
+  "title": "XLA fusion explorer",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-fusion", "hint": "Turn fusion ON and watch the HBM round-trips collapse — the same FLOPs over far fewer bytes pushes arithmetic intensity past the v5p ridge, flipping the op from memory-bound to compute-bound." }
+  ]
+}
