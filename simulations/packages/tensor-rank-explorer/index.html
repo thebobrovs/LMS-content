@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tensor rank explorer</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Tensor rank explorer">
+      <p class="hint"><b>Rank</b> is just how many dimensions a tensor has — how many indices you need to reach one number. Each dimension you add doesn't <i>add</i> to the size, it <b>multiplies</b> it. Step through the ranks and watch the blocks — and the memory bill — explode.</p>
+
+      <div class="controls" id="controls"></div>
+
+      <div class="stage">
+        <div class="panel">
+          <div class="ptitle" id="blocktitle">The shape, as blocks</div>
+          <div id="blocks"></div>
+        </div>
+        <div class="panel">
+          <div class="ptitle">The memory bill</div>
+          <div id="readout"></div>
+        </div>
+      </div>
+
+      <div class="note" id="note" aria-live="polite"></div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "id": "tensor-rank-explorer",
+  "title": "Tensor rank explorer — why dimensions explode memory",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-footprint", "hint": "Step rank 0 → 1 → 2 → 3 and watch the block count go 1 → 3 → 9 → 27: each new dimension MULTIPLIES the whole structure. Now read the right panel — at model scale (each dimension 4096) that same jump runs 2 B → 8 KiB → 32 MiB → 128 GiB, and the rank-3 tensor no longer fits in one chip's HBM. That's why adding a dimension is the scariest thing you can do to a memory budget." }
+  ]
+}

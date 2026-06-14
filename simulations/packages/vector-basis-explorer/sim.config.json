@@ -1,0 +1,9 @@
+{
+  "id": "vector-basis-explorer",
+  "title": "Vector basis explorer — geometry becomes an array",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-tensor", "hint": "Drag X, Y, Z and watch the arrow's shadow land on each axis. Each shadow length is one component — and those three numbers ARE the array [x, y, z] the chip stores. Drop Z to 0 and you're back to a flat 2-D vector; add it back and you've added a dimension. That little list of numbers is the tensor." }
+  ]
+}

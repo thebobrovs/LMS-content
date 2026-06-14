@@ -1,0 +1,22 @@
+[
+  {
+    "type": "link",
+    "topic": "math-infra/what-is-a-tensor",
+    "title": "What's a Tensor? — Dan Fleisch (12 min)",
+    "url": "https://www.youtube.com/watch?v=f5liqUk0ZTw",
+    "note": "The clearest geometric intuition for where the word 'tensor' comes from — built from arrows, shadows, and basis vectors with household objects. It teaches the physics tensor (coordinate-system machinery we don't need to operate chips), so treat it as optional origin-of-the-word; for operations, a tensor is just a multidimensional array."
+  },
+  {
+    "type": "notebook",
+    "topic": "math-infra/what-is-a-tensor",
+    "title": "What Is a Tensor? — see it in numpy",
+    "url": "https://colab.research.google.com/github/thebobrovs/LMS-content/blob/main/notebooks/what-is-a-tensor.ipynb",
+    "note": "Reads rank and shape straight off numpy arrays, computes the footprint formula, and charts the rank → memory blow-up (rank 3 punches through a chip's HBM). Pure numpy, runs on CPU."
+  },
+  {
+    "type": "prompt",
+    "topic": "math-infra/what-is-a-tensor",
+    "title": "Reason about rank and the memory bill",
+    "prompt": "An activation tensor has shape [batch=8, seq=8192, hidden=4096] in bf16. State its rank, compute its footprint in bytes, then explain why doubling the sequence length and why adding one more dimension each affect HBM differently. Tie it back to why a longer-context job can OOM when a shorter one fit on the same chip."
+  }
+]

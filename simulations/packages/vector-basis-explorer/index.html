@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vector basis explorer</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Vector basis explorer">
+      <p class="hint">An arrow in space is hard to store. So we measure its <b>shadow</b> on each axis — the lengths along <b>X</b>, <b>Y</b>, <b>Z</b>. Those three numbers <b>are</b> the array the computer keeps. Drag the sliders: geometry on the left becomes a <b>tensor</b> on the right.</p>
+
+      <div class="controls" id="controls"></div>
+
+      <div class="stage">
+        <div class="panel">
+          <div class="ptitle">An arrow and its shadows</div>
+          <div id="scene"></div>
+        </div>
+        <div class="panel">
+          <div class="ptitle">What the computer stores</div>
+          <div id="readout"></div>
+        </div>
+      </div>
+
+      <div class="note" id="note" aria-live="polite"></div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

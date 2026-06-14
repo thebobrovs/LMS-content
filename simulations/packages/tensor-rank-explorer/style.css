@@ -1,0 +1,59 @@
+/* Tensor rank explorer — Hyperstack tokens, theme-aware, no CDNs. */
+:root {
+  --bg:#fff; --fg:#0f172a; --muted:#64748b; --surface:#f1f5f9; --panel:#fff; --border:#e2e8f0; --inset:#f8fafc;
+  --primary:#2563eb; --primary-contrast:#fff; --good:#0d9488; --bad:#dc2626;
+  --ctop:#93c5fd; --cfront:#3b82f6; --cside:#1d4ed8; --cedge:#1e3a8a;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0f172a; --fg:#f8fafc; --muted:#94a3b8; --surface:#1e293b; --panel:#1e293b; --border:#334155; --inset:#0f172a;
+    --primary:#60a5fa; --primary-contrast:#0b1220; --good:#2dd4bf; --bad:#f87171;
+    --ctop:#bfdbfe; --cfront:#60a5fa; --cside:#3b82f6; --cedge:#1e40af; }
+}
+[data-theme="light"] { --bg:#fff; --fg:#0f172a; --muted:#64748b; --surface:#f1f5f9; --panel:#fff; --border:#e2e8f0; --inset:#f8fafc; --primary:#2563eb; --primary-contrast:#fff; --good:#0d9488; --bad:#dc2626; --ctop:#93c5fd; --cfront:#3b82f6; --cside:#1d4ed8; --cedge:#1e3a8a; }
+[data-theme="dark"] { --bg:#0f172a; --fg:#f8fafc; --muted:#94a3b8; --surface:#1e293b; --panel:#1e293b; --border:#334155; --inset:#0f172a; --primary:#60a5fa; --primary-contrast:#0b1220; --good:#2dd4bf; --bad:#f87171; --ctop:#bfdbfe; --cfront:#60a5fa; --cside:#3b82f6; --cedge:#1e40af; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--fg); font-family: ui-sans-serif, system-ui, sans-serif; }
+#app { padding: 20px; max-width: 920px; margin: 0 auto; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.hint { font-size: 14px; color: var(--muted); line-height: 1.55; margin: 0 0 16px; }
+.hint b { color: var(--fg); }
+
+.controls { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.rbtn { flex: 1 1 0; min-width: 120px; background: var(--inset); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; cursor: pointer; text-align: left; color: var(--muted); transition: border-color .15s, background .15s; }
+.rbtn:hover { border-color: var(--primary); }
+.rbtn.active { border-color: var(--primary); background: var(--surface); box-shadow: inset 0 0 0 1px var(--primary); }
+.rbtn .rk { display: block; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: var(--primary); }
+.rbtn .nm { display: block; font-size: 14px; font-weight: 700; color: var(--fg); margin-top: 2px; }
+
+.stage { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; align-items: stretch; }
+@media (max-width: 700px) { .stage { grid-template-columns: 1fr; } }
+.panel { background: var(--inset); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+.ptitle { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 10px; }
+.panel svg { width: 100%; height: auto; display: block; }
+
+.face-top { fill: var(--ctop); stroke: var(--cedge); stroke-width: 1; stroke-linejoin: round; }
+.face-front { fill: var(--cfront); stroke: var(--cedge); stroke-width: 1; stroke-linejoin: round; }
+.face-side { fill: var(--cside); stroke: var(--cedge); stroke-width: 1; stroke-linejoin: round; }
+
+/* readout */
+.count { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--muted); }
+.shape { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 22px; font-weight: 700; color: var(--fg); margin: 2px 0 2px; }
+.eq { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; color: var(--primary); font-weight: 700; margin-bottom: 4px; }
+.divider { height: 1px; background: var(--border); margin: 16px 0 14px; }
+.scale-label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+.scale-sub { font-size: 12px; color: var(--muted); margin: 3px 0 8px; }
+.bytes { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 34px; font-weight: 800; color: var(--good); line-height: 1.1; }
+.bytes.over { color: var(--bad); }
+.fit { margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--good); }
+.fit.over { color: var(--bad); }
+
+.note { font-size: 14px; line-height: 1.6; color: var(--muted); background: var(--surface); border-radius: 12px; padding: 15px 18px; border-left: 4px solid var(--primary); }
+.note.over { border-color: var(--bad); }
+.note b { color: var(--fg); font-weight: 700; }
+.note .hl { color: var(--primary); font-weight: 800; }
+.note .hl.over { color: var(--bad); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }

@@ -5,8 +5,8 @@ tags: [math-infra, performance, memory]
 difficulty: beginner
 estimatedMinutes: 10
 level: 100
-prerequisites: []
-relatedTo: [math-infra/precision-and-memory, ml-systems/tpu-chip-systolic-array]
+prerequisites: [math-infra/what-is-a-tensor]
+relatedTo: [math-infra/what-is-a-tensor, math-infra/precision-and-memory, ml-systems/tpu-chip-systolic-array]
 videos: []
 flashcards:
   - front: What is a tensor, and why does its shape matter to an operator?
@@ -57,12 +57,12 @@ computes the padding tax and charts the **"sawtooth of waste"** — zero at ever
 cliff just past it (129 → 256 ≈ +98%). Pure `numpy`, runs on **CPU**, no GPU.
 </Callout>
 
-## A tensor is a shaped buffer
+## Shape is what gets allocated
 
-A **<Term id="tensor">tensor</Term>** is just an N-dimensional array of numbers — a batch of
-inputs, a weight matrix, a layer's activations. The thing that matters operationally is its
-**shape**: the size of each dimension. Shape — not a vague "size" — sets the memory footprint
-and decides how the tensor maps onto the hardware.
+You already know a **<Term id="tensor">tensor</Term>** is just a multidimensional array of numbers
+(see [What Is a Tensor?](/topics/math-infra/what-is-a-tensor)). What matters *here* is its
+**shape** — the size of each dimension. Shape, not a vague "size," sets the memory footprint and
+decides how the tensor maps onto the hardware.
 
 <Callout type="tip">
 **Infra bridge.** Treat the shape like a struct's field sizes or a packet's fixed layout: the

@@ -34,6 +34,24 @@
   "tensor": {
     "definition": "An N-dimensional array of numbers — a batch of inputs, a weight matrix, a layer's activations. Its shape (the size of each dimension) is what sets its memory footprint and how it tiles onto the MXU."
   },
+  "rank": {
+    "definition": "A tensor's number of dimensions — how many indices you need to pin down one value (a.k.a. ndim or order). Rank 0 is a scalar, 1 a vector, 2 a matrix, 3+ higher tensors. Each added dimension multiplies the element count (and the memory), so rank — not just size — drives the HBM footprint. Note this is tensor rank, unrelated to the linear-algebra 'matrix rank' (number of independent rows)."
+  },
+  "scalar": {
+    "definition": "A single number — a rank-0 tensor, shape (). A learning rate or a loss value; no index needed to read it."
+  },
+  "vector": {
+    "definition": "A 1-D list of numbers — a rank-1 tensor, shape (n,). One index reaches a value. An embedding, a row of activations, or the [x, y, z] components of an arrow."
+  },
+  "matrix": {
+    "definition": "A 2-D grid of numbers — a rank-2 tensor, shape (rows, cols). Two indices reach a value. A layer's weight grid, or a routing table."
+  },
+  "basis vector": {
+    "definition": "The agreed unit 'rulers' (x̂, ŷ, ẑ — length 1 along each axis) that turn a list of numbers into a real direction; the vector is each component times its basis vector, summed. In ML you rarely touch them — they are the convention that lets a stored array [x, y, z] mean a geometric arrow. (The physics origin of the word 'tensor'.)"
+  },
+  "projection": {
+    "definition": "The 'shadow' a vector casts onto an axis — its component along that axis. Reading the three projections of an arrow gives the array [x, y, z] the computer actually stores; the bridge from geometry to a flat list of numbers."
+  },
   "padding": {
     "definition": "XLA zero-pads tensor dimensions up to the MXU tile (128, or 256 on v6e/v7) and the memory lanes (multiples of 8). A dimension just over a multiple silently rounds up — burning compute and on-chip memory on padded zeros, a common cause of surprise OOMs."
   },

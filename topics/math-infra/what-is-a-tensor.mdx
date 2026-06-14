@@ -1,0 +1,176 @@
+---
+title: What Is a Tensor? — A Multidimensional Array
+summary: Before precision or shapes can make sense, one word needs nailing down — tensor. To the hardware it is nothing exotic; it is a multidimensional array of numbers stored as a flat row in memory. This builds the idea from a geometric arrow (its components are shadows on the axes) up to rank, and shows why each dimension you add multiplies the memory bill. For infra engineers, no calculus.
+tags: [math-infra, fundamentals, memory]
+difficulty: beginner
+estimatedMinutes: 12
+level: 100
+prerequisites: []
+relatedTo: [math-infra/tensor-shapes, ml-systems/tpu-chip-systolic-array]
+videos: []
+flashcards:
+  - front: What is a tensor, in one line?
+    back: A multidimensional array of numbers — that's it. Rank 0 is a single number (scalar), rank 1 a list (vector), rank 2 a grid (matrix), rank 3+ higher. The chip never stores anything exotic; it stores a flat row of numbers plus a shape that says how to read them.
+  - front: What is rank, and what is the common confusion?
+    back: Rank is the number of dimensions — how many indices you need to reach one value (also called ndim or order). Don't confuse it with the linear-algebra 'matrix rank' (number of independent rows); here rank just means how many axes the array has.
+  - front: How does a geometric arrow become an array the computer stores?
+    back: You read its shadow (projection) on each axis. The three shadow lengths are the components [x, y, z]. The chip stores those numbers, never the arrow — the unit vectors are just the agreed ruler that makes the list mean a direction.
+  - front: Why does adding one dimension blow up memory?
+    back: Each dimension multiplies the element count, it doesn't add to it. At a model width of 4096 in bf16, a rank-2 tensor is 32 MiB but a rank-3 tensor is 128 GiB — past a whole chip's HBM. That multiplicative growth is why activation and KV-cache tensors devour memory.
+quiz:
+  - question: An activation tensor has shape [batch, seq, hidden]. What is its rank?
+    choices:
+      - "1"
+      - "3"
+      - It depends on the batch size
+    answer: 1
+    explanation: Rank is the count of dimensions (indices), not their sizes. Three bracketed dimensions means rank 3 — you need three indices to reach one number, regardless of how big each dimension is.
+  - question: In the arrow-to-array picture, what does a component (the shadow on an axis) represent?
+    choices:
+      - A rounding error
+      - One of the numbers actually stored in the array
+      - The length of the whole arrow
+    answer: 1
+    explanation: Each axis shadow is one component — and those components are exactly the numbers the computer stores. The geometry is just where the list of numbers comes from; the chip keeps the flat array.
+  - question: Why does a rank-3 tensor blow past HBM when the same data as rank-2 fit easily?
+    choices:
+      - Higher-rank tensors use a bigger dtype
+      - Each new dimension multiplies the whole structure, not adds to it
+      - Rank-3 tensors can't be compressed
+    answer: 1
+    explanation: Going up a rank multiplies the element count by the new dimension's size. At model scale that turns tens of MiB into hundreds of GiB — which is why an extra dimension is the scariest thing you can do to a memory budget.
+status: published
+---
+
+## The one-line summary
+
+Every later lesson — precision, shapes, sharding — leans on one word: **tensor**. It sounds
+exotic. It isn't. To the hardware, a **<Term id="tensor">tensor</Term> is just a multidimensional
+array of numbers** — a flat row of values in memory, plus a **shape** that says how to read them.
+A single number, a list, a grid, a cube of numbers: all tensors, differing only in how many
+**dimensions** they have. Get that, and "the model is just tensors flowing through chips" stops
+being a slogan and becomes something you can reason about.
+
+<Callout type="tip">
+**Infra bridge.** You already think this way. A config value is one number. A time series is a
+list. A routing table is a grid. Stack routing tables across VRFs and you've got a cube. Those are
+ranks 0, 1, 2, 3 — the *only* thing that changes is how many indices you need to reach one value.
+</Callout>
+
+<Callout type="tip">
+**Run it yourself.** A short [Colab notebook](https://colab.research.google.com/github/thebobrovs/LMS-content/blob/main/notebooks/what-is-a-tensor.ipynb)
+reads a tensor's rank and shape straight off `numpy`, then computes the footprint and charts the
+rank → memory blow-up (watch rank 3 punch through a chip's HBM). Pure `numpy`, runs on **CPU**, no GPU.
+</Callout>
+
+## From an arrow to an array — the shadow trick
+
+So where do the numbers come from? Start with something physical: an **arrow** in space (a
+direction with a length). You can't store an arrow — but you *can* measure its **shadow** on each
+axis. Those shadow lengths are the arrow's **components**, and that list of components —
+`[x, y, z]` — *is* the array the computer keeps.
+
+Drag the arrow below and watch geometry turn into a stored array:
+
+<Simulation id="vector-basis-explorer" height={560} />
+
+The shadow on an axis is called a **<Term id="projection">projection</Term>**; the little length-1
+rulers (x̂, ŷ, ẑ — the caret ˆ just means "length exactly 1 along that axis") are the
+**<Term id="basis vector">basis vectors</Term>**, the agreed unit that makes the numbers mean a real
+direction.
+
+<Callout type="tip">
+**Infra bridge.** This is serialization. The arrow is the rich object; the components are the
+**wire format** — a flat list both sides agree how to read. The basis vectors are the *protocol*:
+sender and receiver agree the first number means "along x," and the integers suddenly mean
+something. The chip only ever ships the flat list.
+</Callout>
+
+You'll essentially never touch basis vectors operating ML systems — but they're *why* a flat list
+of numbers can stand in for a real object, which is the same reason a **wrong shape, not a wrong
+value, is what usually breaks a run**.
+
+## Rank — how many dimensions
+
+The one number that classifies a tensor is its **<Term id="rank">rank</Term>**: how many
+dimensions it has, i.e. **how many indices you need to reach a single value**.
+
+- **rank 0** — a **<Term id="scalar">scalar</Term>**, one number, shape `()`.
+- **rank 1** — a **<Term id="vector">vector</Term>**, a list, shape `(n,)` — the `[x, y, z]` above.
+- **rank 2** — a **<Term id="matrix">matrix</Term>**, a grid, shape `(rows, cols)`.
+- **rank 3+** — a cube and beyond, like `[batch, seq, hidden]`.
+
+<Callout type="warn">
+**One naming trap.** "Rank" here means **number of dimensions** (you'll also see *ndim* or
+*order*). It is **not** the linear-algebra "rank of a matrix" (the count of independent rows). Same
+word, unrelated idea — when an ML tool says a tensor is "rank 3," it means three axes.
+</Callout>
+
+Step through the ranks and watch the structure grow:
+
+<Simulation id="tensor-rank-explorer" height={520} />
+
+## Why rank is the scariest word in a memory budget
+
+Here's the operational punchline. Each dimension you add doesn't *add* to the size — it
+**multiplies** it. The number of elements is the product of the dimensions, so growth is
+**multiplicative**, not additive.
+
+Make it concrete at model scale — every dimension `4096` wide, in `bf16` (2 bytes each):
+
+| rank | shape | elements | bytes |
+| --- | --- | --- | --- |
+| 1 | `(4096,)` | 4 K | 8 KiB |
+| 2 | `(4096, 4096)` | 16 M | 32 MiB |
+| 3 | `(4096, 4096, 4096)` | 69 B | **128 GiB** |
+
+One extra dimension took the same kind of data from **32 MiB to 128 GiB** — past a single chip's
+**<Term id="hbm">HBM</Term>** (~95 GB). Nothing changed but the rank.
+
+<Callout type="tip">
+**Infra bridge.** This is why "just add a dimension" terrifies the people sizing the cluster.
+**Activations** (the chip's intermediate scratch values for each layer) and the **KV-cache** (a
+per-token scratchpad attention keeps in HBM to avoid recomputing earlier tokens) both carry batch
+*and* sequence *and* hidden dimensions — every one a multiplier. When a job OOMs on a longer context
+or a bigger batch, you're watching this table play out — HBM utilization climbs until the run dies.
+The element count, not the dtype, is usually the culprit.
+</Callout>
+
+## Where the word comes from (optional, and lovely)
+
+If you want the deeper geometric story — why we even *say* "tensor," and how basis vectors carry it —
+Dan Fleisch explains it in twelve minutes with blocks and a desk lamp. It's the physics view (which
+adds coordinate-system machinery we don't need to operate chips), but it's the clearest intuition
+for the shadow trick you used above.
+
+<YouTube id="f5liqUk0ZTw" title="What's a Tensor? — Dan Fleisch" />
+
+For operating ML systems, the array definition is all you need: **a tensor is a multidimensional
+array, and its rank is how many dimensions it has.**
+
+## Why this matters
+
+- **It's the vocabulary for everything else.** Shapes, padding, precision, sharding — all of it is
+  "what's the rank and the shape, and how many bytes does that come to."
+- **Rank drives the memory bill.** Sizing HBM, predicting an OOM, reading why a longer sequence
+  blows up — all start with "how many dimensions, each how big, times the dtype."
+- **The chip stores a flat array.** No arrows, no geometry at runtime — just a row of numbers and a
+  shape. That's why a wrong shape, not a wrong value, is what usually breaks a run — and the next
+  lesson, on **tensor shapes**, shows how to compute that footprint before a job ever starts.
+
+## Put it together
+
+<Steps>
+<Step title="Read a shape as a rank">
+Given `[batch, seq, hidden]`, say the rank out loud and explain what "one index per dimension"
+means for reaching a single number.
+</Step>
+<Step title="Turn geometry into an array">
+In the first sim, set the arrow flat on the floor, then lift it with Z. Explain what "adding a
+dimension" did to the list of numbers the computer stores.
+</Step>
+<Step title="Scare yourself with rank">
+In the second sim, step rank 1 → 2 → 3 at model scale. State, in one sentence, why the jump from
+32 MiB to 128 GiB happens — and what that predicts about activation tensors in a real run.
+</Step>
+</Steps>
