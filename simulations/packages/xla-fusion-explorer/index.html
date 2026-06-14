@@ -3,11 +3,97 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>XLA fusion explorer</title>
+    <title>XLA fusion playground</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <main id="app" aria-label="XLA fusion explorer"></main>
+    <main id="app" aria-label="XLA fusion playground">
+      <div class="header-bar">
+        <p class="hint">XLA doesn't run ops one by one — it <b>fuses</b> a chain into a single kernel. Press <b>Run comparison</b> to race the unfused pipeline against the XLA-fused one, and watch how avoiding HBM round-trips changes the bottleneck.</p>
+        <button class="btn-run" id="btn-run">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3l14 9-14 9V3z"/></svg>
+          Run comparison
+        </button>
+      </div>
+
+      <div class="codepanel">
+        <div class="code-head">The layer you're compiling <span class="mono fname">layer.py</span></div>
+<pre class="code"><span class="c-dec">@jax.jit</span>                  <span class="c-cm"># XLA compiles + fuses this graph</span>
+<span class="c-kw">def</span> <span class="c-fn">layer</span>(x, w, b, scale):
+    y = x <span class="c-op">@</span> w            <span class="c-cm"># MatMul  — the heavy op</span>
+    y = y <span class="c-op">+</span> b            <span class="c-cm"># + bias  &#9488;</span>
+    y = jax.nn.<span class="c-fn">gelu</span>(y)     <span class="c-cm"># GELU    &#9474; fused into the</span>
+    y = y <span class="c-op">*</span> scale        <span class="c-cm"># × scale &#9496; matmul's epilogue</span>
+    <span class="c-kw">return</span> y</pre>
+      </div>
+
+      <div class="race-stage">
+        <div class="race-col">
+          <div class="col-header unfused-header">Unfused (baseline)</div>
+          <div class="chip-boundary">
+            <div class="ops-row">
+              <div class="op-wrapper"><div class="op mm" id="u-op-0">MatMul</div><div class="mem hbm">&#8645; HBM</div></div>
+              <div class="connector"><div class="arrow">→</div></div>
+              <div class="op-wrapper"><div class="op" id="u-op-1">+ bias</div><div class="mem hbm">&#8645; HBM</div></div>
+              <div class="connector"><div class="arrow">→</div></div>
+              <div class="op-wrapper"><div class="op" id="u-op-2">GELU</div><div class="mem hbm">&#8645; HBM</div></div>
+              <div class="connector"><div class="arrow">→</div></div>
+              <div class="op-wrapper"><div class="op" id="u-op-3">× scale</div><div class="mem hbm">&#8645; HBM</div></div>
+            </div>
+          </div>
+          <div class="hbm-lanes">
+            <div class="hbm-lane-wrap"><div class="hbm-lane" id="u-hl-0"><div class="hbm-pulse-up"></div><div class="hbm-pulse-down"></div></div></div>
+            <div class="hbm-gap"></div>
+            <div class="hbm-lane-wrap"><div class="hbm-lane" id="u-hl-1"><div class="hbm-pulse-up"></div><div class="hbm-pulse-down"></div></div></div>
+            <div class="hbm-gap"></div>
+            <div class="hbm-lane-wrap"><div class="hbm-lane" id="u-hl-2"><div class="hbm-pulse-up"></div><div class="hbm-pulse-down"></div></div></div>
+            <div class="hbm-gap"></div>
+            <div class="hbm-lane-wrap"><div class="hbm-lane" id="u-hl-3"><div class="hbm-pulse-up"></div><div class="hbm-pulse-down"></div></div></div>
+          </div>
+          <div class="hbm-block" id="u-hbm-block">HBM — off-chip memory</div>
+          <div class="mini-dashboard">
+            <div class="m-stat" id="u-stat-trips"><div class="m-k">HBM trips</div><div class="m-v" id="u-trips">0</div></div>
+            <div class="m-stat" id="u-stat-mb"><div class="m-k">Data</div><div class="m-v"><span id="u-mb">0.0</span><small>MB</small></div></div>
+            <div class="m-stat" id="u-stat-intensity"><div class="m-k">Intensity</div><div class="m-v"><span id="u-intensity">0</span><small>F/B</small></div></div>
+          </div>
+          <div class="m-bound" id="u-bound">waiting</div>
+        </div>
+
+        <div class="race-col">
+          <div class="col-header fused-header">Fused (XLA optimized)</div>
+          <div class="chip-boundary fused">
+            <div class="kernel-label">1 fused kernel · VMEM</div>
+            <div class="ops-row">
+              <div class="op-wrapper"><div class="op mm" id="f-op-0">MatMul</div><div class="mem hbm">↑ in</div></div>
+              <div class="connector"><div class="vmem-lane" id="f-vl-0"><div class="vmem-pulse"></div></div></div>
+              <div class="op-wrapper"><div class="op" id="f-op-1">+ bias</div><div class="mem vmem">VMEM</div></div>
+              <div class="connector"><div class="vmem-lane" id="f-vl-1"><div class="vmem-pulse"></div></div></div>
+              <div class="op-wrapper"><div class="op" id="f-op-2">GELU</div><div class="mem vmem">VMEM</div></div>
+              <div class="connector"><div class="vmem-lane" id="f-vl-2"><div class="vmem-pulse"></div></div></div>
+              <div class="op-wrapper"><div class="op" id="f-op-3">× scale</div><div class="mem hbm">↓ out</div></div>
+            </div>
+          </div>
+          <div class="hbm-lanes">
+            <div class="hbm-lane-wrap"><div class="hbm-lane" id="f-hl-0"><div class="hbm-pulse-up"></div><div class="hbm-pulse-down"></div></div></div>
+            <div class="hbm-gap"></div>
+            <div class="hbm-lane-wrap"><div class="hbm-lane hidden"></div></div>
+            <div class="hbm-gap"></div>
+            <div class="hbm-lane-wrap"><div class="hbm-lane hidden"></div></div>
+            <div class="hbm-gap"></div>
+            <div class="hbm-lane-wrap"><div class="hbm-lane" id="f-hl-3"><div class="hbm-pulse-up"></div><div class="hbm-pulse-down"></div></div></div>
+          </div>
+          <div class="hbm-block" id="f-hbm-block">HBM — off-chip memory</div>
+          <div class="mini-dashboard">
+            <div class="m-stat" id="f-stat-trips"><div class="m-k">HBM trips</div><div class="m-v" id="f-trips">0</div></div>
+            <div class="m-stat" id="f-stat-mb"><div class="m-k">Data</div><div class="m-v"><span id="f-mb">0.0</span><small>MB</small></div></div>
+            <div class="m-stat" id="f-stat-intensity"><div class="m-k">Intensity</div><div class="m-v"><span id="f-intensity">0</span><small>F/B</small></div></div>
+          </div>
+          <div class="m-bound" id="f-bound">waiting</div>
+        </div>
+      </div>
+
+      <div class="note" id="dynamic-note">Press <b>Run comparison</b> to start. The v5p ridge is <b>165 FLOP/byte</b> — below it you're memory-bound, above it compute-bound.</div>
+    </main>
     <script src="./sim-sdk.js"></script>
     <script src="./main.js"></script>
   </body>
