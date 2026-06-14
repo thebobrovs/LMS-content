@@ -46,7 +46,7 @@
     "definition": "Joining multiple slices/Pods over the slower Data-Center Network (DCN) for jobs bigger than one Pod — cross-slice traffic is far slower than ICI."
   },
   "sparsecore": {
-    "definition": "A dedicated TPU unit (introduced on v4; on v5p, v6e, v7 and the training-focused TPU 8t) that accelerates very large embedding lookups — the heavy part of recommendation/ranking and MoE routing. On the inference-focused TPU 8i it is replaced by a CAE."
+    "definition": "A dedicated TPU unit (introduced on v4; on v5p, v6e, v7 and the training-focused TPU 8t) that accelerates very large embedding lookups (table reads mapping each token ID to its dense vector — a gather pattern) — the heavy part of recommendation/ranking and MoE routing. On the inference-focused TPU 8i it is replaced by a CAE."
   },
   "cae": {
     "definition": "Collectives Acceleration Engine — the TPU 8i (inference) block that replaces the four SparseCores; aggregates results across cores with near-zero latency, cutting on-chip collective latency ~5× (key for fast auto-regressive decoding).",

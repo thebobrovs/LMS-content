@@ -140,7 +140,8 @@ stack — they're **sibling libraries on top of JAX** (one builds the model, the
 optimizer):
 
 - **JAX** — the numerics and transforms (`jit`, `grad`, `vmap`) everything else builds on.
-- **Flax NNX** — the model/module system. **NNX is the recommended API** for new code;
+- **Flax NNX** — the model/module system (which Flax API the model is built in is the
+  modeling team's call, not the operator's). **NNX is the recommended API** for new code;
   **Linen** is the older one that still powers frameworks like MaxText, so you'll read
   both. (Either way it's **XLA/JAX-first** — *not* "TPUs are for TensorFlow.")
 - **Optax** — composable optimizers.
