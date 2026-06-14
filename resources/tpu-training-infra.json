@@ -25,5 +25,12 @@
     "topic": "ml-systems/tpu-chip-systolic-array",
     "title": "Work the bandwidth math",
     "prompt": "For a 128×128 systolic MXU fed from HBM at ~2.8 TB/s, explain why a CPU's fetch-per-op model is memory-bound while the array is compute-bound. Define arithmetic intensity, then show how switching fp32 → bf16 and increasing batch size each change where the bottleneck sits."
+  },
+  {
+    "type": "link",
+    "topic": "ml-systems/tpu-ocs",
+    "title": "Jupiter Rising: Clos topologies & centralized control (SIGCOMM 2015)",
+    "url": "https://dl.acm.org/doi/pdf/10.1145/2829988.2787508",
+    "note": "Google's datacenter-network paper — the centralized, software-defined control plane that later reconfigures the OCS. Background on the SDN/Clos foundation, not the OCS itself; for OCS specifics see the Mission Apollo (2022) and TPU v4 ISCA (2023) papers."
   }
 ]
