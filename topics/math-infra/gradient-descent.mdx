@@ -1,0 +1,142 @@
+---
+title: Gradient Descent — What "Training" Actually Is
+summary: Every operational fact about training — why jobs run for weeks, why they checkpoint, why there's optimizer state eating HBM, why a run sometimes diverges into NaNs — falls out of one idea. Training is gradient descent, an iterative downhill loop. The learning rate is the control gain, with a stability band. For infra engineers, no calculus.
+tags: [math-infra, training, fundamentals]
+difficulty: intermediate
+estimatedMinutes: 12
+level: 200
+prerequisites: []
+relatedTo: [math-infra/precision-and-memory, ml-systems/spmd-multi-host]
+videos: []
+flashcards:
+  - front: What is training, in one loop?
+    back: Gradient descent — start with random weights, compute the loss (how wrong the model is), step the weights downhill (opposite the gradient), repeat thousands of times. An iterative control loop, not a one-shot compute.
+  - front: What does the learning rate do, and what's the failure mode?
+    back: It's the step-size gain. There's a stability band — too high and the loss oscillates or diverges to NaN (the run is dead); too low and it crawls, wasting compute. Tuning it is most of getting a run to train.
+  - front: Why is training inherently long and stateful?
+    back: It's iterative — thousands to millions of small steps over mini-batches, not one big matmul. That's why jobs run for days/weeks, must checkpoint to survive failures, and carry per-step optimizer state.
+  - front: Why does the optimizer hold extra per-parameter state?
+    back: Optimizers like Adam keep running averages of past gradients (momentum + variance) to smooth and speed convergence. That's extra memory per parameter — the footprint that often OOMs the chip before the model itself does.
+quiz:
+  - question: A training run's loss explodes to NaN after a few steps. Most likely cause?
+    choices:
+      - A faulty TPU chip
+      - The learning rate is too high — steps overshoot and diverge
+      - The dataset is too small
+    answer: 1
+    explanation: A loss that blows up to inf/NaN early is the classic too-large-learning-rate signature — each step overshoots the minimum and the values explode. It's an unstable control loop, not a hardware fault.
+  - question: Why isn't training a single big computation you run once?
+    choices:
+      - It is — one matmul produces the trained model
+      - It's an iterative descent — many small steps, each nudging the weights downhill
+      - Because the data doesn't fit in memory
+    answer: 1
+    explanation: Training is gradient descent — thousands to millions of small update steps. That iterative, long-running, stateful nature is why checkpoints and weeks-long jobs are inherent, not incidental.
+  - question: What does momentum buy you?
+    choices:
+      - Lower memory use
+      - Smoother, faster convergence — at the cost of extra per-parameter state
+      - It removes the need for a learning rate
+    answer: 1
+    explanation: Momentum carries a running average of past gradients, smoothing the zig-zag and speeding convergence. The trade is more optimizer state to store per parameter.
+status: published
+---
+
+## The one-line summary
+
+Almost everything you'll operate about a training job — why it runs for *weeks*, why it
+**checkpoints**, why there's mysterious "optimizer state" eating HBM, why a run sometimes
+explodes into `NaN`s — falls out of a single idea: **training is gradient descent.** You don't
+need the calculus to operate it; you need the *shape* of the loop. Get that, and run length,
+stability failures, and resource footprint stop being magic.
+
+<Callout type="tip">
+**Run it yourself.** A short [Colab notebook](https://colab.research.google.com/github/thebobrovs/LMS-content/blob/main/notebooks/gradient-descent.ipynb)
+runs the loop and charts it — loss-vs-step for several learning rates (watch 0.30 explode), and the
+descent path zig-zagging across the loss surface vs flying off. Pure `numpy`, runs on **CPU**, no GPU.
+</Callout>
+
+## What "learning" is
+
+A model is just a big pile of tunable numbers — its **weights**. "Learning" means adjusting them.
+Strip away the math and it's four steps on repeat:
+
+1. **Loss** — one number that says how wrong the model currently is.
+2. **Gradient** — which way is *downhill* on that loss. (You use it as a direction; you never
+   compute a derivative by hand.)
+3. **Step** — nudge the weights a little in the downhill direction.
+4. **Repeat** — thousands to millions of times, over mini-batches of data.
+
+That's it. Picture a **loss surface** — the loss plotted against the weights, a landscape where
+height is how wrong the model is. The model "learns" by walking **downhill toward the lowest
+point** (the minimum).
+
+<Callout type="tip">
+**Infra bridge.** This is an **iterative control loop** — measure, step, re-measure — exactly
+like a feedback controller or a hill-climbing search. You don't jump to the answer; you converge
+to it over many cycles. And like any control loop, it has a *gain* you can mis-set.
+</Callout>
+
+## The learning rate is the gain — and it has a stability band
+
+The **<Term id="learning rate">learning rate</Term>** sets how big each step is. It behaves
+exactly like a control-loop gain:
+
+- **too low** — tiny steps, the loss crawls down; you burn compute making little progress;
+- **in the band** — the loss glides smoothly to the minimum (what you want);
+- **too high** — each step *overshoots*, the loss oscillates, and past a threshold it **diverges
+  to `inf`/`NaN`** — the run is dead.
+
+Drag the learning rate and watch the path on the loss surface and the loss-vs-step curve. Push it
+up and the path zig-zags, then flies off:
+
+<Simulation id="gradient-descent-explorer" height={560} />
+
+<Callout type="tip">
+**Infra bridge.** Crank a control loop's gain too high and it **oscillates, then blows up**; too
+low and it's sluggish. The `NaN` explosion is just an unstable loop — same failure you've seen
+when a retry storm or an autoscaler with too-aggressive gain goes into oscillation.
+</Callout>
+
+## Momentum — keeping some velocity
+
+Real training adds **<Term id="momentum">momentum</Term>**: each step carries a running average
+of past gradients, so it keeps moving in a consistent direction instead of zig-zagging across
+the steep walls of a narrow valley. It smooths the path and speeds convergence — at the cost of
+storing that running average for *every parameter*. That stored average is the first piece of
+**<Term id="optimizer state">optimizer state</Term>**, which is why the optimizer's footprint is
+several times the model's — roughly **16 bytes per parameter for Adam, vs 2 for the weights
+themselves**. (The next lesson quantifies that bill.)
+
+## Why this matters
+
+The loop *is* the operational story:
+
+- **Long, stateful jobs.** Training is iterative — thousands of steps, not one shot — so jobs run
+  for days or weeks. That's *why* you **checkpoint**: a crash mid-run shouldn't restart from zero.
+- **The `NaN` blow-up.** When a run dies early with exploding loss, "is the learning rate too
+  high?" is a real first question — an unstable loop, not a chip fault. You'll see it as the loss
+  going to `NaN`/`inf` in the logs (or the job just crashing), so don't go chasing a hardware RMA.
+- **The memory bill.** Optimizer state (momentum and friends) is per-parameter, so it inflates the
+  HBM footprint well past the weights alone — the capacity surprise the next lesson quantifies.
+
+You won't set the learning rate — that's the ML team's dial. But knowing the run is a control loop
+with a stability band tells you *why* it diverges, *why* it's long, and *why* it's memory-hungry —
+which is most of operating it.
+
+## Put it together
+
+<Steps>
+<Step title="Find the stability band">
+In the explorer, start low and raise the learning rate. Name the three regimes you pass through —
+crawling, gliding, diverging — and roughly where the band ends.
+</Step>
+<Step title="Read the NaN">
+Push the rate until the loss curve turns upward. Explain, in control-loop terms, what just
+happened and what you'd tell the team that owns the run.
+</Step>
+<Step title="Use momentum">
+Set a high-ish learning rate that zig-zags, then add momentum. Say what momentum changed about the
+path — and what it costs in memory.
+</Step>
+</Steps>

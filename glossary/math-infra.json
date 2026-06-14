@@ -36,5 +36,26 @@
   },
   "padding": {
     "definition": "XLA zero-pads tensor dimensions up to the MXU tile (128, or 256 on v6e/v7) and the memory lanes (multiples of 8). A dimension just over a multiple silently rounds up — burning compute and on-chip memory on padded zeros, a common cause of surprise OOMs."
+  },
+  "gradient descent": {
+    "definition": "How models learn: start with random weights, take a small step 'downhill' on the loss, and repeat — thousands to millions of times. An iterative control loop, not a one-shot compute, which is why training jobs run for days/weeks, checkpoint, and carry optimizer state."
+  },
+  "gradient": {
+    "definition": "The direction of steepest increase of the loss; training steps the opposite way (downhill). You use it as 'which way is down' — no need to compute the derivative yourself. As a payload it's the size of the model's weights, which is why syncing it across devices is a networking cost."
+  },
+  "loss": {
+    "definition": "A single number that measures how wrong the model currently is. Training minimizes it — the objective you're driving toward zero, like tuning a system to minimize p99 latency."
+  },
+  "learning rate": {
+    "definition": "The step-size multiplier in gradient descent — the control loop's gain. There's a stability band: too high and the loss oscillates or diverges to NaN; too low and it crawls, wasting compute. Tuning it is most of getting a run to train."
+  },
+  "momentum": {
+    "definition": "Carrying a running average of past gradients so the step keeps some velocity — it smooths the zig-zag and speeds convergence, at the cost of extra per-parameter state the optimizer must store."
+  },
+  "optimizer state": {
+    "definition": "The per-parameter bookkeeping an optimizer keeps between steps (e.g. Adam's momentum + variance, plus an fp32 master copy of the weights) — making mixed-precision Adam cost ~16 bytes per parameter, not 2. The memory footprint that often OOMs before the model itself does."
+  },
+  "convergence": {
+    "definition": "When the loss stops dropping meaningfully — the run has reached (a good enough) minimum. The opposite of divergence, where too large a learning rate makes the loss explode to inf/NaN and the run is dead."
   }
 }

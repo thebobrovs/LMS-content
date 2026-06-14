@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gradient descent explorer</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Gradient descent explorer">
+      <p class="hint">"Training" is <b>gradient descent</b> — start somewhere, step downhill, repeat. The <b>learning rate</b> sets the step size: too small and it crawls, too big and it overshoots the valley and <b>diverges</b>. No calculus needed — drag the sliders and watch the path and the loss curve.</p>
+
+      <div class="controls" id="controls"></div>
+
+      <div class="stage">
+        <div class="panel">
+          <div class="ptitle">The loss surface — a path downhill</div>
+          <div id="land"></div>
+        </div>
+        <div class="panel">
+          <div class="ptitle">Loss vs step</div>
+          <div id="curve"></div>
+        </div>
+      </div>
+
+      <div class="note" id="note" aria-live="polite"></div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>
