@@ -53,6 +53,13 @@ unit *fed* instead of *starved*. The price is range and precision — and gettin
 makes a training run silently blow up. This is the first number you reason about when you size
 memory or pick a config.
 
+<Callout type="tip">
+**Run it yourself.** A five-cell [Colab notebook](https://colab.research.google.com/github/thebobrovs/LMS-content/blob/main/notebooks/precision-and-memory.ipynb)
+casts a number into each format and shows the byte width, the **1e5 → fp16 `inf` vs bf16 holds**
+overflow, bf16's coarser rounding, and fp4's tiny world — in real Python. Runs on **CPU** (just
+`numpy` + `ml_dtypes`), no GPU.
+</Callout>
+
 ## A float is range *plus* precision
 
 A floating-point number splits its bits into two jobs:
