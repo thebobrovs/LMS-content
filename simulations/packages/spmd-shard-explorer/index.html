@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SPMD shard explorer</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="SPMD shard explorer">
+      <div class="header-bar">
+        <p class="hint">A <b>sharding</b> decides who holds what — <i>and</i> what the compiler must communicate. Pick a <b>PartitionSpec</b> for a <code>[batch, features]</code> tensor on a 2×4 mesh and watch the shards, the collective <b>Shardy</b> inserts, and the bytes on the wire.</p>
+        <div class="seg" role="group" aria-label="PartitionSpec">
+          <button type="button" class="seg-btn" data-spec="data">P('data', None)</button>
+          <button type="button" class="seg-btn" data-spec="model">P(None, 'model')</button>
+          <button type="button" class="seg-btn" data-spec="replicated">P()</button>
+        </div>
+      </div>
+
+      <p class="tensor-cap" id="tensor-cap"></p>
+
+      <div class="mesh" id="mesh" aria-label="2 by 4 device mesh, two hosts"></div>
+
+      <div class="dashboard" id="dashboard"></div>
+
+      <div class="note" id="note" aria-live="polite"></div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

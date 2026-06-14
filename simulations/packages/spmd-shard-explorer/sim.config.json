@@ -1,0 +1,9 @@
+{
+  "id": "spmd-shard-explorer",
+  "title": "SPMD shard explorer",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-spmd", "hint": "Switch the PartitionSpec and watch shard ownership and the inserted collective change — data-parallel shards the batch and all-reduces gradients over the data axis; model-parallel shards features and all-gathers them over the model axis; replicated stores the whole tensor on every chip with no collective." }
+  ]
+}
