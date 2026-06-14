@@ -115,8 +115,8 @@ By the 8th gen, the designers hit a new kind of wall — **training and serving
 bottlenecks had diverged too far for a single chip.** Pre-training is bound by
 **embedding lookups** (random-access token-ID → vector table reads — the *gather* that
 <Term id="sparsecore">SparseCores</Term> exist to accelerate) and raw throughput; serving
-is bound by **KV-cache memory** (the per-request attention buffer that grows with sequence
-length) and low-latency collective aggregation. So the silicon **split**, and the naming
+is bound by <Term id="kv cache">KV-cache memory</Term> (the per-request attention buffer
+that grows with sequence length) and low-latency collective aggregation. So the silicon **split**, and the naming
 switched from `e`/`p` to **`t`/`i`**:
 
 - **TPU 8t** — training (SparseCore, 3D torus).

@@ -146,8 +146,9 @@ workload** into two parts you choose between.
   superpod scale.
 - **TPU 8i — inference.** Swaps the SparseCores for a
   <Term id="cae">Collectives Acceleration Engine (CAE)</Term> (≈5× lower on-chip
-  collective latency), carries **3× the on-chip SRAM** (384 MB) to hold the **KV cache** —
-  the per-token attention buffer that grows with sequence length — and uses the **Boardfly**
+  collective latency), carries **3× the on-chip SRAM** (384 MB) to hold the
+  <Term id="kv cache">KV cache</Term> — the per-token attention buffer that grows with
+  sequence length — and uses the **Boardfly**
   network (≈7 hops across 1,024 chips vs 16 on a torus).
 
 The same training-vs-inference logic runs back through the lineage: **v5e / v6e
