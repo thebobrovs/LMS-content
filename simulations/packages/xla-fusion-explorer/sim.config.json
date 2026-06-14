@@ -1,9 +1,9 @@
 {
   "id": "xla-fusion-explorer",
   "title": "XLA fusion explorer",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "props": {},
   "checkpoints": [
-    { "id": "observe-fusion", "hint": "Compile first to watch JAX trace your code into StableHLO and XLA fuse the ops, then run the comparison — the fused column's HBM round-trips collapse from 9 to 3, pushing arithmetic intensity past the v5p ridge and flipping the layer from memory-bound to compute-bound." }
+    { "id": "observe-fusion", "hint": "Walk the compile pipeline (step or auto) to inspect the real jaxpr, StableHLO and fused HLO, then Execute — the fused column's HBM round-trips collapse from 9 to 3, pushing arithmetic intensity past the v5p ridge and flipping the layer from memory-bound to compute-bound." }
   ]
 }

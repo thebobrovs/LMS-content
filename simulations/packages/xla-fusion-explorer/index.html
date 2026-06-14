@@ -9,13 +9,19 @@
   <body>
     <main id="app" aria-label="XLA fusion playground">
       <div class="header-bar">
-        <p class="hint">XLA optimization isn't magic — it's a pipeline. First <b>JAX traces</b> your Python and lowers it to <b>StableHLO</b>; then the <b>XLA compiler</b> fuses the ops so intermediates never round-trip to HBM. Compile first, then race the result.</p>
+        <p class="hint">XLA optimization isn't magic — it's a pipeline. <b>JAX traces</b> your Python and lowers it to <b>StableHLO</b>; then the <b>XLA compiler</b> fuses the ops so intermediates never round-trip to HBM. Walk each stage to inspect the real artifact, then race the result.</p>
         <div class="controls-panel">
-          <button type="button" class="btn-run compile" id="btn-jit">1 · Compile (jax.jit)</button>
-          <button type="button" class="btn-run execute" id="btn-run" disabled>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3l14 9-14 9V3z"/></svg>
-            2 · Execute
-          </button>
+          <div class="btn-group">
+            <button type="button" class="btn-run compile" id="btn-step">Step: parse Python</button>
+            <button type="button" class="btn-run compile secondary" id="btn-auto-jit">Auto-compile</button>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="btn-run execute" id="btn-run" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3l14 9-14 9V3z"/></svg>
+              Execute
+            </button>
+            <button type="button" class="btn-run secondary" id="btn-reset">↺ Restart</button>
+          </div>
         </div>
       </div>
 
@@ -40,6 +46,15 @@
           <div class="c-title">4. XLA compiler</div>
           <div class="c-desc">Target: TPU<small>op-fusion kernel</small></div>
         </div>
+      </div>
+
+      <!-- Compiler inspector: shows the real artifact at each stage -->
+      <div class="inspector-panel" id="inspector-panel">
+        <div class="inspector-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          Under the hood — compiler inspector
+        </div>
+        <div class="inspector-content" id="inspector-content"></div>
       </div>
 
       <!-- Race stage -->
@@ -108,7 +123,7 @@
         </div>
       </div>
 
-      <div class="note" id="dynamic-note" aria-live="polite">Start by pressing <b>1 · Compile</b> to watch JAX trace your Python into a StableHLO graph and XLA fuse the ops. The fused column unlocks once compilation finishes.</div>
+      <div class="note" id="dynamic-note" aria-live="polite">Press <b>Step: parse Python</b> to walk the compile pipeline one stage at a time (or <b>Auto-compile</b> to run it through), inspecting the real jaxpr, StableHLO and fused HLO. The fused column unlocks once compilation finishes.</div>
     </main>
     <script src="./sim-sdk.js"></script>
     <script src="./main.js"></script>
