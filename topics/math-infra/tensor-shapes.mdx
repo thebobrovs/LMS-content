@@ -1,0 +1,149 @@
+---
+title: Tensor Shapes — Why Dimensions Must Be Multiples of 128
+summary: The most baffling operator failure is the mysterious OOM — a job that "should fit" dies anyway. The cause is almost always shape, not size. Accelerators work in fixed 128 tiles and silently zero-pad any dimension that isn't a multiple, so a 129-wide matrix becomes 256-wide — paying compute and memory for a wall of zeros. For infra engineers, no calculus.
+tags: [math-infra, performance, memory]
+difficulty: beginner
+estimatedMinutes: 10
+level: 100
+prerequisites: []
+relatedTo: [math-infra/precision-and-memory, ml-systems/tpu-chip-systolic-array]
+videos: []
+flashcards:
+  - front: What is a tensor, and why does its shape matter to an operator?
+    back: A tensor is an N-dimensional array (a batch of inputs, a weight matrix, a layer's activations). Its shape — the size of each dimension, not just the element count — sets its memory footprint and how it tiles onto the MXU. Shape, not size, is what causes surprise OOMs.
+  - front: What does the MXU do to a dimension that isn't a multiple of 128?
+    back: It zero-pads it up to the next multiple of the tile (128, or 256 on v6e/v7) — and the vector lanes (SIMD-like slots) to multiples of 8. A 129-wide dimension spills into a second 128-tile, rounding to 256. You pay compute (FLOPs on zeros) and memory (storing zeros) for the overhang.
+  - front: Why does padding cause OOM even when the "real" data fits?
+    back: Because the padded zeros are stored too. A tensor whose dims sit just over a tile boundary takes far more HBM than its element count suggests — so a job you sized by hand fits on paper but OOMs on the chip.
+  - front: The operator's rule for shapes
+    back: Make batch and feature dimensions multiples of 128 (and 8 for vector lanes). Aligned shapes fill whole tiles — zero padding, zero waste. It's the first thing to check on a mysterious OOM.
+quiz:
+  - question: A matmul has a 129-wide dimension on a 128-tile chip. What does the compiler do?
+    choices:
+      - Runs it at 129 exactly — no overhead
+      - Pads it up to 256 (the next multiple of 128), wasting compute and memory on zeros
+      - Refuses to compile until you fix the shape
+    answer: 1
+    explanation: 129 rounds up to the next tile multiple, 256 — nearly doubling that dimension. The padded zeros cost both FLOPs and HBM, and nothing warns you; it just runs slower and bigger.
+  - question: A job "should fit" in HBM by your element-count math but OOMs anyway. First thing to check?
+    choices:
+      - Whether a TPU chip is faulty
+      - Whether the batch/feature dimensions are multiples of 128
+      - Whether the learning rate is too high
+    answer: 1
+    explanation: A surprise OOM is almost always shape, not size. A dimension just over a tile boundary pads up and stores a wall of zeros, inflating the real footprint past what your back-of-envelope predicted.
+  - question: Why are accelerator tensor shapes static (fixed at compile time)?
+    choices:
+      - To make the Python prettier
+      - Because the chip needs pre-allocated, fixed memory layouts before it runs — so a changed shape forces a recompile
+      - They aren't — shapes can change freely each step
+    answer: 1
+    explanation: The device can't malloc on the fly; it needs the exact buffer layout planned ahead. That's why shapes freeze at compile time and why changing one re-triggers tracing and compilation.
+status: published
+---
+
+## The one-line summary
+
+The most baffling failure you'll hit operating ML jobs is the **mysterious OOM**: a run that
+"should fit" by your back-of-envelope math dies anyway. The cause is almost always **shape, not
+size**. Accelerators are *rigid* — the matrix unit works in fixed **128×128 tiles**, and the
+compiler **silently zero-pads** any dimension that isn't a multiple of the tile. A 129-wide
+matrix quietly becomes 256-wide: you pay compute and memory for a wall of zeros. Knowing this
+turns "why did it OOM?" into a ten-second diagnosis.
+
+<Callout type="tip">
+**Run it yourself.** A short [Colab notebook](https://colab.research.google.com/github/thebobrovs/LMS-content/blob/main/notebooks/tensor-shapes.ipynb)
+computes the padding tax and charts the **"sawtooth of waste"** — zero at every multiple of 128, a
+cliff just past it (129 → 256 ≈ +98%). Pure `numpy`, runs on **CPU**, no GPU.
+</Callout>
+
+## A tensor is a shaped buffer
+
+A **<Term id="tensor">tensor</Term>** is just an N-dimensional array of numbers — a batch of
+inputs, a weight matrix, a layer's activations. The thing that matters operationally is its
+**shape**: the size of each dimension. Shape — not a vague "size" — sets the memory footprint
+and decides how the tensor maps onto the hardware.
+
+<Callout type="tip">
+**Infra bridge.** Treat the shape like a struct's field sizes or a packet's fixed layout: the
+*dimensions*, not a hand-waved byte count, decide what gets allocated. Two tensors with the same
+element count but different shapes can cost very different amounts of memory — and that gap is the
+whole topic.
+</Callout>
+
+## The 128 tile, and the zeros you didn't ask for
+
+The <Term id="mxu">MXU</Term> processes the world in **128×128 tiles** (256×256 on v6e/v7, newer
+TPU generations). When a matmul dimension isn't a multiple of that tile, XLA
+**<Term id="padding">pads</Term>** it up to the next multiple. So a `129`-wide dimension spills
+past the first 128-tile into a second — rounding up to 2×128 = `256`, and that whole second tile is
+almost entirely zeros the chip still stores and still multiplies. (The vector unit's **lanes** —
+its parallel slots, like SIMD lanes — also want filling in multiples of **8**, a smaller version of
+the same tax; but the headline rule is 128.)
+
+Drag the dimensions of a matmul and watch the real matrix round up to the tile grid — the red
+overhang is pure waste:
+
+<Simulation id="matmul-tiler" height={560} />
+
+<Callout type="tip">
+**Infra bridge.** This is **block/page-size rounding**. A 1-byte file still takes a full 4 KB page;
+a 129-wide matrix still takes a 256-wide tile. Same internal-fragmentation tax you know from
+filesystems and memory pages — just with much bigger blocks, and applied to both compute *and*
+storage.
+</Callout>
+
+## Padding costs compute *and* memory — and the memory is the OOM
+
+Two bills come due. The **compute** bill: the MXU does real FLOPs on the padded zeros (a 129→256
+dimension nearly doubles that axis's work). The **memory** bill: those zeros are *stored* in
+<Term id="hbm">HBM</Term> — and *that* is the surprise OOM. You sized the job by its real element
+count; the chip allocated the padded shape, which is bigger. The job that fit on your napkin
+doesn't fit on the slice. Put bluntly: at a near-tile dimension you're renting a slice you're only
+half-using.
+
+That's why the same byte-width-and-intensity <Term id="roofline">roofline</Term> from the precision
+lesson is sensitive to shape too — padding inflates the bytes moved. Set a clean dimension and note
+the FLOP/byte; now bump one just over a tile boundary and watch the bytes-moved climb and the
+operating point slide toward memory-bound:
+
+<Simulation id="arithmetic-intensity-calculator" height={520} />
+
+## Why shapes are rigid (and why they recompile)
+
+One more thing that trips up engineers coming from dynamic Python: accelerator shapes are
+**static**, fixed at compile time. The chip can't allocate on the fly — it needs the exact buffer
+layout planned *before* it runs. So shapes freeze, and **changing one re-triggers compilation**
+(the "why did my step suddenly get slow after I changed the batch size?" gotcha).
+
+<Callout type="tip">
+**Infra bridge.** Static shapes are pre-allocated fixed buffers — faster than malloc-on-the-fly,
+but the price is that a new shape invalidates the plan and forces a recompile. It's the same trade
+as a statically-sized ring buffer vs. a dynamic allocator.
+</Callout>
+
+## Why this matters
+
+Shape is one of the few performance-and-capacity levers you can reason about without touching the
+model. When a data scientist files "my job OOMs and it shouldn't," your first move is now
+**"are the batch and feature dims multiples of 128?"** — and when someone's MFU is mysteriously
+low, padding on a near-tile dimension is a prime suspect. You won't pick the model's dimensions —
+but you can spot the ones that quietly cost double, flag them to the team that owns the model, and
+turn a guessed capacity plan into a sized one.
+
+## Put it together
+
+<Steps>
+<Step title="Make the waste appear">
+In the tiler, set every dimension to 512 (zero waste), then nudge one to 513. Read off how much
+compute and memory just went to padding, and what shape it rounded up to.
+</Step>
+<Step title="Fix a surprise OOM">
+A job with a `129`-wide feature dimension OOMs a slice it should fit. Round it to the nearest
+multiple of 128 and say, in one sentence, why the footprint dropped.
+</Step>
+<Step title="Connect it to the roofline">
+Explain how padding a near-tile dimension can push a workload the *wrong* way on the roofline —
+more bytes moved for the same useful math.
+</Step>
+</Steps>

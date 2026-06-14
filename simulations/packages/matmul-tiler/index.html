@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Matmul tiler — the padding trap</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Matmul tiler — the padding trap">
+      <div class="header-bar">
+        <p class="hint">The MXU works in fixed <b>128×128 tiles</b>. Any matmul dimension that isn't a multiple of the tile gets <b>silently zero-padded</b> up to the next one — you pay compute and memory for the overhang. Drag the dimensions and watch the waste.</p>
+        <div class="seg" role="group" aria-label="MXU tile size">
+          <button type="button" class="seg-btn on" data-tile="128">128 tile (v5p)</button>
+          <button type="button" class="seg-btn" data-tile="256">256 tile (v6e/v7)</button>
+        </div>
+      </div>
+
+      <div class="sliders" id="sliders"></div>
+
+      <div class="stage">
+        <div class="viz" id="viz" aria-label="Output matrix tiling"></div>
+        <div class="dashboard" id="dashboard"></div>
+      </div>
+
+      <div class="note" id="note" aria-live="polite"></div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>
