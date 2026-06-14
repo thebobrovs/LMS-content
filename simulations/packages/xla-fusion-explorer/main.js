@@ -1,9 +1,10 @@
-// createSim is a global from sim-sdk.js (classic script). Two-step flow: (1) Compile —
-// trace the Python layer → StableHLO → XLA fuses the op chain, which unlocks the fused
-// column; (2) Execute — race the unfused baseline (every op round-trips HBM, 9 trips)
-// against the XLA-fused kernel (intermediates stay in VMEM, 3 trips). Same FLOPs, far
-// fewer bytes → arithmetic intensity jumps past the v5p ridge and the layer flips from
-// memory-bound to compute-bound. Deterministic, theme-aware, reduced-motion aware, no CDNs.
+// createSim is a global from sim-sdk.js (classic script). Walk the compile pipeline —
+// Python → jaxpr → StableHLO → XLA fused kernel — inspecting the REAL artifact at each
+// stage (captured from JAX 0.4.30, lightly trimmed), then race the result: the unfused
+// baseline round-trips every op through HBM (9 trips), the XLA-fused kernel keeps the
+// intermediates in VMEM (3 trips). Same FLOPs, far fewer bytes → arithmetic intensity
+// jumps past the v5p ridge and the layer flips from memory-bound to compute-bound.
+// Deterministic, theme-aware, reduced-motion aware, no CDNs.
 
 // Honor both the OS media query and the host's explicit reducedMotion flag (set in onInit).
 let REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -12,49 +13,133 @@ let REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const TENSOR_MB = 0.5; // a 512×512 bf16 tensor ≈ 0.5 MB
 const FLOPS = 268; // matmul dominates ≈ 268 MFLOP (2·512³)
 const RIDGE = 165; // v5p ridge, FLOP/byte
-
 const UNFUSED_TRIPS = 9; // matmul reads A+W, writes Y (3); +bias/GELU/scale each read+write (6)
 const FUSED_TRIPS = 3; // read A, read W, write final — intermediates stay in VMEM
 
-let isRunning = false, jitDone = false, observedRace = false;
+let isRunning = false, jitDone = false, jitStep = 0, isAuto = false, isStepAnimating = false, observedRace = false;
 let uTrips = 0, fTrips = 0;
 
 const $ = (id) => document.getElementById(id);
-const btnJit = $("btn-jit"), btnRun = $("btn-run"), note = $("dynamic-note");
+const btnStep = $("btn-step"), btnAuto = $("btn-auto-jit"), btnRun = $("btn-run"), btnReset = $("btn-reset");
+const note = $("dynamic-note"), inspectorPanel = $("inspector-panel"), inspectorContent = $("inspector-content");
 
-// In reduced-motion mode every delay collapses, so sequences resolve to their end-state
-// (the CSS @media rule also kills the keyframes as a backstop).
 const delay = (ms) => new Promise((r) => setTimeout(r, REDUCE ? 0 : ms));
-
 function applyTheme(t) {
   if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
   else delete document.documentElement.dataset.theme;
 }
 function reportSize() { requestAnimationFrame(() => sim.resize(document.body.scrollHeight + 16)); }
 
-// --- Step 1: JIT compile pipeline (trace → StableHLO → XLA), then unlock the fused column ---
-async function runJit() {
-  if (jitDone) return;
-  btnJit.disabled = true;
-  note.innerHTML = "<i>Tracing your Python into an abstract graph…</i>";
-  $("cn-py").classList.add("active");
-  await delay(500);
-  $("ca-1").classList.add("active"); $("cn-trace").classList.add("active");
-  await delay(900);
-  note.innerHTML = "<i>Lowering to <b>StableHLO</b> — the portable, hardware-neutral IR…</i>";
-  $("ca-2").classList.add("active"); $("cn-hlo").classList.add("active");
-  await delay(900);
-  note.innerHTML = "<i><b>XLA</b> compiles for TPU — fusing MatMul + bias + GELU + scale into one kernel…</i>";
-  $("ca-3").classList.add("active"); $("cn-xla").classList.add("active");
-  await delay(900);
+// --- Inspector content: faithful, lightly-trimmed real JAX output for this exact layer ---
+const inspectorData = {
+  python: {
+    title: "1. Python function",
+    code: `<span class="syn-kw">@jax.jit</span>
+<span class="syn-kw">def</span> <span class="syn-fn">layer</span>(x, w, b, s):
+    y = x <span class="syn-op">@</span> w            <span class="syn-cm"># MatMul</span>
+    y = y <span class="syn-op">+</span> b            <span class="syn-cm"># + bias</span>
+    y = jax.nn.<span class="syn-fn">gelu</span>(y)     <span class="syn-cm"># activation</span>
+    <span class="syn-kw">return</span> y <span class="syn-op">*</span> s        <span class="syn-cm"># × scale</span>`,
+    desc: "You write NumPy-like Python. <code>@jax.jit</code> tells JAX to <i>compile</i> this function instead of running it eagerly op-by-op.",
+  },
+  trace: {
+    title: "2. JAX trace (jaxpr)",
+    code: `<span class="syn-kw">{ lambda</span> ; a:<span class="syn-ty">bf16[512,512]</span> b:<span class="syn-ty">bf16[512,512]</span> …
+  <span class="syn-kw">let</span> e = <span class="syn-fn">dot_general</span> a b      <span class="syn-cm"># MatMul</span>
+      g = <span class="syn-fn">add</span> e b_bcast        <span class="syn-cm"># + bias</span>
+      <span class="syn-cm"># gelu expands to a tanh-approx chain:</span>
+      h = <span class="syn-fn">integer_pow</span>[y=3] g
+      … <span class="syn-fn">mul</span> · <span class="syn-fn">add</span> · <span class="syn-fn">tanh</span> · <span class="syn-fn">mul</span> …
+      o = <span class="syn-fn">mul</span> g n             <span class="syn-cm"># = gelu(g)</span>
+      p = <span class="syn-fn">mul</span> o d             <span class="syn-cm"># × scale</span>
+  <span class="syn-kw">in</span> (p,) }`,
+    desc: "JAX runs your code once with <i>abstract</i> values to record a static graph (jaxpr). Shapes freeze to <code>bf16[512,512]</code>. Note <code>gelu</code> isn't one op — it expands into its tanh approximation, all of which XLA will fuse.",
+  },
+  hlo: {
+    title: "3. StableHLO",
+    code: `<span class="syn-fn">%0 </span>= <span class="syn-op">stablehlo.dot_general</span> %x, %w   <span class="syn-cm">: bf16[512,512]</span>
+<span class="syn-fn">%3 </span>= <span class="syn-op">stablehlo.add</span> %0, %bias
+<span class="syn-fn">%4 </span>= <span class="syn-op">stablehlo.multiply</span> %3, %3      <span class="syn-cm"># g² ┐ gelu</span>
+<span class="syn-fn">%11</span>= <span class="syn-op">stablehlo.tanh</span> %10            <span class="syn-cm"># …  │ tanh-approx</span>
+<span class="syn-fn">%16</span>= <span class="syn-op">stablehlo.multiply</span> %3, %15     <span class="syn-cm"># =gelu ┘</span>
+<span class="syn-fn">%18</span>= <span class="syn-op">stablehlo.multiply</span> %16, %scale <span class="syn-cm"># × scale</span>`,
+    desc: "The jaxpr lowers to <b>StableHLO</b> — a portable, hardware-neutral IR (the same program runs on CPU, GPU, or TPU). The op set is all primitives: <code>dot_general</code>, <code>add</code>, <code>multiply</code>, <code>tanh</code> — no opaque <code>gelu</code> call.",
+  },
+  xla: {
+    title: "4. XLA fused kernel",
+    code: `<span class="syn-cm">// XLA targets the TPU and fuses the chain:</span>
+<span class="syn-fn">%fused_computation</span> <span class="syn-op">{</span>
+  %dot = <span class="syn-fn">dot_general</span>(%x, %w)    <span class="syn-cm">// MXU</span>
+  %g   = <span class="syn-fn">add</span>(%dot, %bias)      <span class="syn-cm">// ┐ epilogue,</span>
+  %a   = gelu_chain(%g)           <span class="syn-cm">// │ all in VMEM</span>
+  ROOT = <span class="syn-fn">multiply</span>(%a, %scale)  <span class="syn-cm">// ┘</span>
+<span class="syn-op">}</span>
+<span class="syn-fn">%fusion</span> = <span class="syn-ty">bf16[512,512]</span> <span class="syn-kw">fusion</span>(…), kind=kLoop`,
+    desc: "XLA sees that <code>add</code>, <code>gelu</code> and <code>scale</code> can ride in the matmul's epilogue. It emits a single fused kernel: intermediates stay in on-chip <b>VMEM</b>, so only the inputs and final output touch HBM. Same FLOPs, far fewer bytes.",
+  },
+};
 
-  const fusedCol = $("fused-col");
-  fusedCol.classList.remove("locked");
-  if (!REDUCE) fusedCol.classList.add("highlight-pulse");
-  btnRun.disabled = false;
-  jitDone = true;
-  note.innerHTML = "<b>Compiled.</b> XLA fused the chain into one kernel. Press <b>2 · Execute</b> to race the unfused baseline against the XLA-fused executable.";
-  sim.event("jit-completed", {});
+function updateInspector(key, isXla) {
+  const d = inspectorData[key];
+  inspectorContent.innerHTML =
+    `<div class="inspector-code">${d.code}</div>` +
+    `<div class="inspector-explain ${isXla ? "xla-h4" : ""}"><h4>${d.title}</h4><p>${d.desc}</p></div>`;
+  reportSize();
+}
+
+// --- Advance the compile pipeline to stage n (1..4) ---
+function applyStage(n) {
+  if (n === 1) {
+    note.innerHTML = "<i>Parsing your Python function…</i>";
+    $("cn-py").classList.add("active"); updateInspector("python");
+    btnStep.textContent = "Step: JAX trace";
+  } else if (n === 2) {
+    $("ca-1").classList.add("active"); $("cn-trace").classList.add("active"); updateInspector("trace");
+    btnStep.textContent = "Step: StableHLO";
+  } else if (n === 3) {
+    note.innerHTML = "<i>Lowering to <b>StableHLO</b> — the portable, hardware-neutral IR…</i>";
+    $("ca-2").classList.add("active"); $("cn-hlo").classList.add("active"); updateInspector("hlo");
+    btnStep.textContent = "Step: XLA compile";
+  } else if (n === 4) {
+    note.innerHTML = "<i><b>XLA</b> compiles for TPU — fusing MatMul + bias + GELU + scale into one kernel…</i>";
+    $("ca-3").classList.add("active"); $("cn-xla").classList.add("active"); updateInspector("xla", true);
+    const fc = $("fused-col");
+    fc.classList.remove("locked");
+    if (!REDUCE) fc.classList.add("highlight-pulse");
+    btnRun.disabled = false; jitDone = true; btnStep.disabled = true; btnAuto.disabled = true;
+    btnStep.textContent = "Compiled ✓";
+    note.innerHTML = "<b>Compiled.</b> XLA traced the graph and fused the ops. Press <b>Execute</b> to race the unfused baseline against the XLA-fused kernel.";
+    sim.event("jit-completed", {});
+  }
+  jitStep = n;
+}
+
+async function stepJit() {
+  if (jitDone || isAuto || isStepAnimating) return;
+  isStepAnimating = true; btnReset.disabled = true;
+  inspectorPanel.classList.add("visible");
+  applyStage(jitStep + 1);
+  isStepAnimating = false; btnReset.disabled = false;
+}
+
+async function autoJit() {
+  if (jitDone || isAuto || isStepAnimating) return;
+  isAuto = true; btnStep.disabled = true; btnAuto.disabled = true; btnReset.disabled = true;
+  inspectorPanel.classList.add("visible");
+  while (jitStep < 4) { applyStage(jitStep + 1); if (jitStep < 4) await delay(1500); }
+  isAuto = false; btnReset.disabled = false;
+}
+
+function resetAll() {
+  if (isRunning || isAuto || isStepAnimating) return;
+  jitDone = false; jitStep = 0;
+  btnStep.disabled = false; btnStep.textContent = "Step: parse Python";
+  btnAuto.disabled = false; btnRun.disabled = true;
+  document.querySelectorAll(".c-node, .c-arrow").forEach((el) => el.classList.remove("active"));
+  inspectorPanel.classList.remove("visible");
+  const fc = $("fused-col"); fc.classList.add("locked"); fc.classList.remove("highlight-pulse");
+  resetRace();
+  note.innerHTML = "Press <b>Step: parse Python</b> to walk the compile pipeline one stage at a time (or <b>Auto-compile</b> to run it through), inspecting the real jaxpr, StableHLO and fused HLO. The fused column unlocks once compilation finishes.";
   reportSize();
 }
 
@@ -91,10 +176,9 @@ function resetRace() {
   uTrips = 0; fTrips = 0;
   updateM("u", 0); updateM("f", 0);
   ["u", "f"].forEach((p) => {
-    const b = $(`${p}-bound`); b.textContent = "running…"; b.className = "m-bound";
+    const b = $(`${p}-bound`); b.textContent = "waiting"; b.className = "m-bound";
     $(`${p}-stat-intensity`).classList.remove("highlight");
   });
-  // Clear race-only state, but leave the compile-stage nodes lit.
   document.querySelectorAll(".op.active, .hbm-block.active").forEach((el) => el.classList.remove("active"));
   document.querySelectorAll(".active-up, .active-down").forEach((el) => el.classList.remove("active-up", "active-down"));
 }
@@ -123,12 +207,10 @@ async function vmemTransfer(prefix, laneIdx) {
 
 // --- Execution runners ---
 async function runUnfused() {
-  // MatMul: read A+W (2) + write Y (1) = 3 trips on lane 0.
   await hbmTrip("u", 0, "up"); updateM("u", 2);
   await executeOp("u", 0, 300);
   await hbmTrip("u", 0, "down"); updateM("u", 1);
   await delay(50);
-  // +bias, GELU, ×scale: each reads then writes — 2 trips apiece.
   for (let i = 1; i < 4; i++) {
     await hbmTrip("u", i, "up"); updateM("u", 1);
     await executeOp("u", i, 300);
@@ -139,51 +221,43 @@ async function runUnfused() {
 }
 
 async function runFused() {
-  // MatMul reads A + W from HBM (2 trips, in-lane).
   await hbmTrip("f", 0, "up"); updateM("f", 2);
-  // +bias, GELU, ×scale ride along in VMEM — no HBM traffic.
   await executeOp("f", 0, 200); await vmemTransfer("f", 0);
   await executeOp("f", 1, 200); await vmemTransfer("f", 1);
   await executeOp("f", 2, 200); await vmemTransfer("f", 2);
   await executeOp("f", 3, 200);
-  // Write the final result back to HBM (1 trip, out-lane).
   await hbmTrip("f", 3, "down"); updateM("f", 1);
   finalizeM("f");
 }
 
-// --- Step 2: Execute the race ---
 async function runRace() {
   if (isRunning || !jitDone) return;
-  isRunning = true;
-  btnRun.disabled = true;
+  isRunning = true; btnRun.disabled = true; btnReset.disabled = true;
   resetRace();
   note.innerHTML = "<i>Racing the two pipelines…</i>";
   sim.event("race-started", {});
-
   if (REDUCE) {
-    // Skip the animation; jump straight to the end-state.
     uTrips = UNFUSED_TRIPS; fTrips = FUSED_TRIPS;
     updateM("u", 0); updateM("f", 0);
     finalizeM("u"); finalizeM("f");
   } else {
     await Promise.all([runUnfused(), runFused()]);
   }
-
-  note.innerHTML = "<b>Done.</b> Same layer, same FLOPs. The fused kernel keeps intermediates in VMEM — <b>9 → 3</b> HBM round-trips, so arithmetic intensity climbs from <b>60</b> to <b>179</b> FLOP/byte, past the v5p ridge (165). The layer flips from <b>memory-bound</b> to <b>compute-bound</b>: XLA removed the trips, not the math.";
-  isRunning = false;
-  btnRun.disabled = false;
+  note.innerHTML = "<b>Done.</b> Same layer, same FLOPs — the fused kernel keeps intermediates in VMEM: <b>9 → 3</b> HBM round-trips, intensity <b>60 → 179</b> FLOP/byte, past the v5p ridge (165). The layer flips from <b>memory-bound</b> to <b>compute-bound</b>.";
+  isRunning = false; btnRun.disabled = false; btnReset.disabled = false;
   if (!observedRace) { observedRace = true; sim.checkpoint("observe-fusion"); }
   sim.event("race-complete", { unfusedTrips: UNFUSED_TRIPS, fusedTrips: FUSED_TRIPS });
   reportSize();
 }
 
-btnJit.addEventListener("click", runJit);
+btnStep.addEventListener("click", stepJit);
+btnAuto.addEventListener("click", autoJit);
 btnRun.addEventListener("click", runRace);
+btnReset.addEventListener("click", resetAll);
 
 const sim = createSim({
   onInit({ theme, reducedMotion }) { REDUCE = REDUCE || reducedMotion; applyTheme(theme); reportSize(); },
 });
 
-// Auto-resize when content height changes (e.g. when the fused column unlocks).
 new ResizeObserver(() => reportSize()).observe(document.body);
 setTimeout(() => { if (!sim.isInitialized()) reportSize(); }, 300);
