@@ -8,22 +8,42 @@
   </head>
   <body>
     <main id="app" aria-label="SPMD shard explorer">
-      <div class="header-bar">
-        <p class="hint">A <b>sharding</b> decides who holds what — <i>and</i> what the compiler must communicate. Pick a <b>PartitionSpec</b> for a <code>[batch, features]</code> tensor on a 2×4 mesh and watch the shards, the collective <b>Shardy</b> inserts, and the bytes on the wire.</p>
+      <p class="hint">A <b>sharding</b> decides not just who holds what, but <i>which network</i> carries the traffic. Pick a <b>PartitionSpec</b> to see the shards, then <b>run a step</b> to watch the physical routing — the one-time host <b>rendezvous</b> over the DCN, then the per-step collective over the <b>ICI</b>.</p>
+
+      <div class="controls-bar">
         <div class="seg" role="group" aria-label="PartitionSpec">
-          <button type="button" class="seg-btn" data-spec="data">P('data', None)</button>
+          <button type="button" class="seg-btn on" data-spec="data">P('data', None)</button>
           <button type="button" class="seg-btn" data-spec="model">P(None, 'model')</button>
           <button type="button" class="seg-btn" data-spec="replicated">P()</button>
         </div>
+        <div class="btn-row">
+          <button type="button" id="btn-run" class="btn-run">▶ Run a training step</button>
+          <button type="button" id="btn-reset" class="btn-ghost" disabled>↺ Reset</button>
+        </div>
       </div>
-
-      <p class="tensor-cap" id="tensor-cap"></p>
-
-      <div class="mesh" id="mesh" aria-label="2 by 4 device mesh, two hosts"></div>
 
       <div class="dashboard" id="dashboard"></div>
 
-      <div class="note" id="note" aria-live="polite"></div>
+      <div class="status-note" id="status-note" aria-live="polite"></div>
+
+      <div id="stage" class="stage">
+        <div class="host-box">
+          <div class="host-header"><span>Host VM 0 · <code>data=0</code></span><span class="nic" title="DCN NIC"></span></div>
+          <div class="chip-grid" id="host0-chips"></div>
+        </div>
+
+        <div class="dcn-layer">
+          <span class="dcn-label">DCN / VPC — host-to-host TCP/IP (rendezvous + cross-slice)</span>
+          <div class="dcn-cable"><div class="dcn-traffic"></div></div>
+        </div>
+
+        <div class="host-box">
+          <div class="host-header"><span>Host VM 1 · <code>data=1</code></span><span class="nic" title="DCN NIC"></span></div>
+          <div class="chip-grid" id="host1-chips"></div>
+        </div>
+
+        <svg class="ici-svg" id="ici-canvas" aria-hidden="true"></svg>
+      </div>
     </main>
     <script src="./sim-sdk.js"></script>
     <script src="./main.js"></script>
