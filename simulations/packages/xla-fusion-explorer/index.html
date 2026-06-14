@@ -9,24 +9,40 @@
   <body>
     <main id="app" aria-label="XLA fusion playground">
       <div class="header-bar">
-        <p class="hint">XLA doesn't run ops one by one — it <b>fuses</b> a chain into a single kernel. Press <b>Run comparison</b> to race the unfused pipeline against the XLA-fused one, and watch how avoiding HBM round-trips changes the bottleneck.</p>
-        <button class="btn-run" id="btn-run">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3l14 9-14 9V3z"/></svg>
-          Run comparison
-        </button>
+        <p class="hint">XLA optimization isn't magic — it's a pipeline. First <b>JAX traces</b> your Python and lowers it to <b>StableHLO</b>; then the <b>XLA compiler</b> fuses the ops so intermediates never round-trip to HBM. Compile first, then race the result.</p>
+        <div class="controls-panel">
+          <button type="button" class="btn-run compile" id="btn-jit">1 · Compile (jax.jit)</button>
+          <button type="button" class="btn-run execute" id="btn-run" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3l14 9-14 9V3z"/></svg>
+            2 · Execute
+          </button>
+        </div>
       </div>
 
-      <div class="codepanel">
-        <div class="code-head">The layer you're compiling <span class="mono fname">layer.py</span></div>
-<pre class="code"><span class="c-dec">@jax.jit</span>                  <span class="c-cm"># XLA compiles + fuses this graph</span>
-<span class="c-kw">def</span> <span class="c-fn">layer</span>(x, w, b, scale):
-    y = x <span class="c-op">@</span> w            <span class="c-cm"># MatMul  — the heavy op</span>
-    y = y <span class="c-op">+</span> b            <span class="c-cm"># + bias  &#9488;</span>
-    y = jax.nn.<span class="c-fn">gelu</span>(y)     <span class="c-cm"># GELU    &#9474; fused into the</span>
-    y = y <span class="c-op">*</span> scale        <span class="c-cm"># × scale &#9496; matmul's epilogue</span>
-    <span class="c-kw">return</span> y</pre>
+      <!-- Compile pipeline: trace -> StableHLO -> XLA -->
+      <div class="compile-stage" aria-label="Compilation pipeline">
+        <div class="c-node" id="cn-py">
+          <div class="c-title">1. Python fn</div>
+          <div class="c-desc">@jax.jit<small>layer(x, w, b, s)</small></div>
+        </div>
+        <div class="c-arrow" id="ca-1">→</div>
+        <div class="c-node" id="cn-trace">
+          <div class="c-title">2. JAX trace</div>
+          <div class="c-desc">Abstract graph<small>bf16[512, 512]</small></div>
+        </div>
+        <div class="c-arrow" id="ca-2">→</div>
+        <div class="c-node" id="cn-hlo">
+          <div class="c-title">3. StableHLO</div>
+          <div class="c-desc">Portable IR<small>dot · add · tanh</small></div>
+        </div>
+        <div class="c-arrow" id="ca-3">→</div>
+        <div class="c-node xla" id="cn-xla">
+          <div class="c-title">4. XLA compiler</div>
+          <div class="c-desc">Target: TPU<small>op-fusion kernel</small></div>
+        </div>
       </div>
 
+      <!-- Race stage -->
       <div class="race-stage">
         <div class="race-col">
           <div class="col-header unfused-header">Unfused (baseline)</div>
@@ -59,7 +75,7 @@
           <div class="m-bound" id="u-bound">waiting</div>
         </div>
 
-        <div class="race-col">
+        <div class="race-col locked" id="fused-col">
           <div class="col-header fused-header">Fused (XLA optimized)</div>
           <div class="chip-boundary fused">
             <div class="kernel-label">1 fused kernel · VMEM</div>
@@ -92,7 +108,7 @@
         </div>
       </div>
 
-      <div class="note" id="dynamic-note">Press <b>Run comparison</b> to start. The v5p ridge is <b>165 FLOP/byte</b> — below it you're memory-bound, above it compute-bound.</div>
+      <div class="note" id="dynamic-note" aria-live="polite">Start by pressing <b>1 · Compile</b> to watch JAX trace your Python into a StableHLO graph and XLA fuse the ops. The fused column unlocks once compilation finishes.</div>
     </main>
     <script src="./sim-sdk.js"></script>
     <script src="./main.js"></script>
