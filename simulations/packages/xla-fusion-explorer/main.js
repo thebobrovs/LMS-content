@@ -53,7 +53,7 @@ const inspectorData = {
       o = <span class="syn-fn">mul</span> g n             <span class="syn-cm"># = gelu(g)</span>
       p = <span class="syn-fn">mul</span> o d             <span class="syn-cm"># × scale</span>
   <span class="syn-kw">in</span> (p,) }`,
-    desc: "JAX runs your code once with <i>abstract</i> values to record a static graph (jaxpr). Shapes freeze to <code>bf16[512,512]</code>. Note <code>gelu</code> isn't one op — it expands into its tanh approximation, all of which XLA will fuse.",
+    desc: "JAX runs your code once with <i>abstract</i> values to record a static graph (jaxpr). Shapes freeze to <code>bf16[512,512]</code>. Note <code>gelu</code> isn't one op — that single activation is really ~10 basic add/multiply/tanh ops (its math formula, expanded). You don't need the formula; the point is XLA fuses every one of them into the matmul.",
   },
   hlo: {
     title: "3. StableHLO",

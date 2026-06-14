@@ -40,7 +40,7 @@ quiz:
       - Because the bottlenecks of pre-training and of serving fundamentally diverged
       - To reduce manufacturing cost only
     answer: 1
-    explanation: Pre-training is bound by embedding lookups and throughput; serving is bound by KV-cache memory and low-latency collective aggregation. One chip can't optimize both, so 8t (training) and 8i (inference) split apart.
+    explanation: Pre-training is bound by embedding lookups (giant token-ID → vector table reads) and throughput; serving is bound by KV-cache memory and low-latency collective aggregation. One chip can't optimize both, so 8t (training) and 8i (inference) split apart.
 status: published
 ---
 
@@ -113,8 +113,10 @@ the Ironwood and 8th-generation announcements.
 
 By the 8th gen, the designers hit a new kind of wall — **training and serving
 bottlenecks had diverged too far for a single chip.** Pre-training is bound by
-embedding lookups and raw throughput; serving is bound by KV-cache memory and
-low-latency collective aggregation. So the silicon **split**, and the naming
+**embedding lookups** (random-access token-ID → vector table reads — the *gather* that
+<Term id="sparsecore">SparseCores</Term> exist to accelerate) and raw throughput; serving
+is bound by **KV-cache memory** (the per-request attention buffer that grows with sequence
+length) and low-latency collective aggregation. So the silicon **split**, and the naming
 switched from `e`/`p` to **`t`/`i`**:
 
 - **TPU 8t** — training (SparseCore, 3D torus).

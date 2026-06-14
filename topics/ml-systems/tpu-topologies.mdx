@@ -12,11 +12,11 @@ flashcards:
   - front: ICI (Inter-Chip Interconnect)
     back: The high-bandwidth links that directly wire TPU chips together — six per v5p chip (±X, ±Y, ±Z), ~4,800 Gbps/chip — forming the 3D torus inside a pod.
   - front: Data parallelism (DP)
-    back: Each device holds a full copy of the model; gradients are all-reduced across devices every step. All-reduce maps cleanly onto a torus ring.
+    back: Each device holds a full copy of the model; gradients are all-reduced across devices once per step (one big sync). All-reduce maps cleanly onto a torus ring.
   - front: Tensor parallelism (TP)
-    back: A single matmul is split across a group of devices. It is bandwidth-hungry, so it's kept on the tightest, highest-bandwidth ICI axis.
+    back: A single matmul is split across a group of devices, so every layer triggers a cross-device sync (all-reduce/all-gather) — constant, heavy traffic, kept on the tightest, highest-bandwidth ICI axis.
   - front: Pipeline parallelism (PP)
-    back: The model's layers are split into stages on different devices; micro-batches stream through so every stage stays busy.
+    back: The model's layers are split into stages on different devices; only small activations pass forward, stage to stage (point-to-point), so it stays light enough to tolerate the slower DCN.
 quiz:
   - question: How many ICI links does each TPU v5p chip have?
     choices:
