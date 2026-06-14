@@ -100,5 +100,11 @@
   },
   "fusion": {
     "definition": "An XLA optimization that merges a chain of operations (e.g. matmul + bias + activation) into a single kernel, so intermediate results stay on-chip instead of round-tripping through HBM. Same FLOPs, far fewer bytes moved — higher arithmetic intensity."
+  },
+  "activation function": {
+    "definition": "A cheap, element-wise function — GELU, ReLU, sigmoid — applied to every element after a matmul to give the network its non-linearity. You don't need its math to operate the stack: on a TPU it's a handful of per-element ops on the VPU (the vector unit), not the MXU — which is exactly why XLA can fold it into the matmul's epilogue for free."
+  },
+  "tracing": {
+    "definition": "How JAX turns dynamic Python into a static graph: it runs your jitted function once with abstract, shape-and-dtype-only stand-ins to record the operations, freezing every tensor shape. Static shapes are what let XLA pre-plan exact HBM allocation and emit a fixed binary before anything runs — change a shape and it must re-trace and recompile."
   }
 }
