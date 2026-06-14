@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" width="760" height="440" role="img" aria-label="The OCS optical path. A fiber collimator and lens array on the left sends O-band signal light up to a first 2D MEMS array of 136 mirrors, across to a second 136-mirror MEMS array, and down to a fiber collimator array on the right. Above, an injection module emits an 850-nanometer monitor beam that a dichroic splitter merges into the signal path; on the far side a second dichroic splitter peels the monitor beam back out to a camera module, forming a closed loop that keeps the mirrors aligned.">
+  <rect width="760" height="440" fill="#ffffff"/>
+  <defs>
+    <marker id="ocs-sig" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0d9488"/></marker>
+    <marker id="ocs-mon" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#e11d48"/></marker>
+  </defs>
+
+  <text x="380" y="32" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="17" font-weight="700" fill="#0f172a">Inside the OCS — closed-loop optical beam steering</text>
+
+  <!-- 850 nm monitor modules -->
+  <g font-family="Inter, system-ui, sans-serif" font-size="11.5" font-weight="700" text-anchor="middle">
+    <rect x="150" y="66" width="120" height="34" rx="8" fill="#7c3aed"/>
+    <text x="210" y="88" fill="#ffffff">Injection · 850 nm</text>
+    <rect x="490" y="66" width="120" height="34" rx="8" fill="#2563eb"/>
+    <text x="550" y="88" fill="#ffffff">Camera · 850 nm Rx</text>
+  </g>
+
+  <!-- dichroic splitters -->
+  <g>
+    <rect x="289" y="122" width="32" height="6" rx="3" transform="rotate(-45 305 125)" fill="#60a5fa" opacity="0.85"/>
+    <rect x="439" y="122" width="32" height="6" rx="3" transform="rotate(45 455 125)" fill="#60a5fa" opacity="0.85"/>
+    <text x="305" y="150" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#64748b">dichroic splitter</text>
+    <text x="455" y="150" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#64748b">dichroic splitter</text>
+  </g>
+
+  <!-- 2D MEMS arrays (136 mirrors each) -->
+  <g>
+    <rect x="268" y="168" width="74" height="74" rx="8" fill="#f8fafc" stroke="#2563eb" stroke-width="1.5"/>
+    <rect x="418" y="168" width="74" height="74" rx="8" fill="#f8fafc" stroke="#2563eb" stroke-width="1.5"/>
+    <g fill="#2563eb">
+      <!-- mirror dot grid A -->
+      <g>
+        <circle cx="280" cy="180" r="2.4"/><circle cx="293" cy="180" r="2.4"/><circle cx="306" cy="180" r="2.4"/><circle cx="319" cy="180" r="2.4"/><circle cx="332" cy="180" r="2.4"/>
+        <circle cx="280" cy="193" r="2.4"/><circle cx="293" cy="193" r="2.4"/><circle cx="306" cy="193" r="2.4"/><circle cx="319" cy="193" r="2.4"/><circle cx="332" cy="193" r="2.4"/>
+        <circle cx="280" cy="206" r="2.4"/><circle cx="293" cy="206" r="2.4"/><circle cx="306" cy="206" r="2.4"/><circle cx="319" cy="206" r="2.4"/><circle cx="332" cy="206" r="2.4"/>
+        <circle cx="280" cy="219" r="2.4"/><circle cx="293" cy="219" r="2.4"/><circle cx="306" cy="219" r="2.4"/><circle cx="319" cy="219" r="2.4"/><circle cx="332" cy="219" r="2.4"/>
+        <circle cx="280" cy="232" r="2.4"/><circle cx="293" cy="232" r="2.4"/><circle cx="306" cy="232" r="2.4"/><circle cx="319" cy="232" r="2.4"/><circle cx="332" cy="232" r="2.4"/>
+      </g>
+      <!-- mirror dot grid B -->
+      <g>
+        <circle cx="430" cy="180" r="2.4"/><circle cx="443" cy="180" r="2.4"/><circle cx="456" cy="180" r="2.4"/><circle cx="469" cy="180" r="2.4"/><circle cx="482" cy="180" r="2.4"/>
+        <circle cx="430" cy="193" r="2.4"/><circle cx="443" cy="193" r="2.4"/><circle cx="456" cy="193" r="2.4"/><circle cx="469" cy="193" r="2.4"/><circle cx="482" cy="193" r="2.4"/>
+        <circle cx="430" cy="206" r="2.4"/><circle cx="443" cy="206" r="2.4"/><circle cx="456" cy="206" r="2.4"/><circle cx="469" cy="206" r="2.4"/><circle cx="482" cy="206" r="2.4"/>
+        <circle cx="430" cy="219" r="2.4"/><circle cx="443" cy="219" r="2.4"/><circle cx="456" cy="219" r="2.4"/><circle cx="469" cy="219" r="2.4"/><circle cx="482" cy="219" r="2.4"/>
+        <circle cx="430" cy="232" r="2.4"/><circle cx="443" cy="232" r="2.4"/><circle cx="456" cy="232" r="2.4"/><circle cx="469" cy="232" r="2.4"/><circle cx="482" cy="232" r="2.4"/>
+      </g>
+    </g>
+    <text x="305" y="258" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600" fill="#0f172a">2D MEMS · 136 mirrors</text>
+    <text x="455" y="258" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600" fill="#0f172a">2D MEMS · 136 mirrors</text>
+  </g>
+
+  <!-- fiber collimator + lens arrays -->
+  <g stroke="#64748b" stroke-width="1.5">
+    <line x1="56" y1="300" x2="104" y2="300"/><line x1="56" y1="312" x2="104" y2="312"/><line x1="56" y1="324" x2="104" y2="324"/><line x1="56" y1="336" x2="104" y2="336"/><line x1="56" y1="348" x2="104" y2="348"/>
+    <line x1="656" y1="300" x2="704" y2="300"/><line x1="656" y1="312" x2="704" y2="312"/><line x1="656" y1="324" x2="704" y2="324"/><line x1="656" y1="336" x2="704" y2="336"/><line x1="656" y1="348" x2="704" y2="348"/>
+  </g>
+  <g fill="#eff6ff" stroke="#2563eb" stroke-width="1.5">
+    <ellipse cx="110" cy="324" rx="7" ry="28"/>
+    <ellipse cx="650" cy="324" rx="7" ry="28"/>
+  </g>
+  <g font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600" fill="#0f172a" text-anchor="middle">
+    <text x="92" y="376">Fiber + lens array</text><text x="92" y="390" font-weight="400" fill="#64748b">136 in / out</text>
+    <text x="668" y="376">Fiber + lens array</text><text x="668" y="390" font-weight="400" fill="#64748b">136 in / out</text>
+  </g>
+
+  <!-- signal path (O-band, green) : left fiber -> MEMS A -> MEMS B -> right fiber -->
+  <polyline points="117,324 305,205 455,205 643,324" fill="none" stroke="#0d9488" stroke-width="3" stroke-linejoin="round" marker-end="url(#ocs-sig)"/>
+
+  <!-- monitor path (850 nm, rose dashed) : injection -> dichroic A -> into MEMS path ; MEMS path -> dichroic B -> camera -->
+  <g fill="none" stroke="#e11d48" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round">
+    <polyline points="210,100 210,125 305,125 305,170"/>
+    <polyline points="455,170 455,125 550,125 550,100" marker-end="url(#ocs-mon)"/>
+  </g>
+  <!-- legend -->
+  <g font-family="Inter, system-ui, sans-serif" font-size="12">
+    <line x1="60" y1="414" x2="92" y2="414" stroke="#0d9488" stroke-width="3"/>
+    <text x="100" y="418" fill="#0f172a">O-band signal — the data</text>
+    <line x1="290" y1="414" x2="322" y2="414" stroke="#e11d48" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="330" y="418" fill="#0f172a">850 nm monitor — alignment feedback</text>
+  </g>
+</svg>
