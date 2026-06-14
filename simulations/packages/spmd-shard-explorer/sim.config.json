@@ -1,9 +1,9 @@
 {
   "id": "spmd-shard-explorer",
   "title": "SPMD shard explorer",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "props": {},
   "checkpoints": [
-    { "id": "observe-spmd", "hint": "Switch the PartitionSpec and watch shard ownership and the inserted collective change — data-parallel shards the batch and all-reduces gradients over the data axis; model-parallel shards features and all-gathers them over the model axis; replicated stores the whole tensor on every chip with no collective." }
+    { "id": "observe-spmd", "hint": "Pick a PartitionSpec and run a step: data-parallel shards the batch and all-reduces gradients across the host boundary (4 cross-host pairs on the ICI); model-parallel shards features and all-gathers them densely within each host (ICI); replicated needs no collective. Note the host rendezvous over the DCN is a one-time startup, not a per-step cost." }
   ]
 }
