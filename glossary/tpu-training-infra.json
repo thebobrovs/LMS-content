@@ -106,5 +106,11 @@
   },
   "tracing": {
     "definition": "How JAX turns dynamic Python into a static graph: it runs your jitted function once with abstract, shape-and-dtype-only stand-ins to record the operations, freezing every tensor shape. Static shapes are what let XLA pre-plan exact HBM allocation and emit a fixed binary before anything runs — change a shape and it must re-trace and recompile."
+  },
+  "kv cache": {
+    "definition": "The running buffer of attention keys and values a model keeps for every token generated so far. It grows linearly with sequence length × batch — so at long context it can OOM a serving slice (a capacity problem), and because each new token must re-read the whole buffer, decoding is memory-bandwidth-bound (a throughput problem). Roughly 2 (K+V) × layers × heads × head_dim × seq × batch × dtype_bytes."
+  },
+  "auto-regressive decoding": {
+    "definition": "Generating output one token at a time, feeding each token back in to produce the next. Every step re-reads the whole KV cache, so it's memory-bandwidth-bound, not compute-bound — the serving regime that inference-tuned chips (e.g. the TPU 8i) are built for."
   }
 }
