@@ -112,5 +112,29 @@
   },
   "auto-regressive decoding": {
     "definition": "Generating output one token at a time, feeding each token back in to produce the next. Every step re-reads the whole KV cache, so it's memory-bandwidth-bound, not compute-bound — the serving regime that inference-tuned chips (e.g. the TPU 8i) are built for."
+  },
+  "spmd": {
+    "definition": "Single Program, Multiple Data — every host runs the identical compiled binary, each operating on its own shard of the data. Think one container image fanned out to every node (or MPI ranks), not a driver-and-workers split: you declare how the data is laid out and the compiler generates the cross-device communication."
+  },
+  "mesh": {
+    "definition": "A named N-dimensional grid of devices that you map shardings onto — e.g. a 2×4 mesh with axes 'data' and 'model'. Built with jax.make_mesh(...) (or jax.sharding.Mesh(...)); the axis names are exactly what a PartitionSpec refers to."
+  },
+  "sharding": {
+    "definition": "A declaration of how a tensor's dimensions split across the axes of a device mesh. In JAX: a PartitionSpec (each entry is None = replicated, a mesh-axis name, or a tuple of axes) paired with the mesh as a NamedSharding. You describe the layout; the partitioner inserts whatever communication makes the math correct — like declaring a partition key and letting a query planner add the shuffle."
+  },
+  "collective": {
+    "definition": "A multi-device communication op — all-reduce, all-gather, reduce-scatter — that the partitioner inserts to make a sharded computation correct. The bytes a collective moves over ICI (in-slice) or DCN (cross-slice) are the real cost of parallelism: it's the network shuffle behind 'declare the layout, the compiler does the comms'."
+  },
+  "all-reduce": {
+    "definition": "The collective that combines (e.g. sums) a value across every shard and hands all of them the result. The data-parallel gradient step: each device computes gradients on its slice of the batch, then one all-reduce makes everyone agree before the optimizer updates the weights."
+  },
+  "shardy": {
+    "definition": "JAX's MLIR-based tensor partitioner — the default since JAX 0.7.1, successor to GSPMD. Given your shardings it propagates them through the program and inserts the collectives, so you never hand-write a send/recv."
+  },
+  "shard_map": {
+    "definition": "The manual escape hatch (jax.shard_map): you write the per-device code and the collectives (e.g. jax.lax.psum) yourself instead of letting the partitioner infer them. More control, more rope — reach for it when automatic sharding can't express what you need."
+  },
+  "coordinator": {
+    "definition": "Process 0's rendezvous service that every host connects to at startup (jax.distributed.initialize) before any compute runs. It's a gang-scheduling / leader-election barrier over the DCN — and the #1 multi-host failure is a host that can't reach it (firewall, wrong IP, MTU), which surfaces as a barrier timeout, not a chip error."
   }
 }

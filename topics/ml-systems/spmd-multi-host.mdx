@@ -1,0 +1,184 @@
+---
+title: SPMD — One Program Across Every Host
+summary: How one jitted program runs on every host of a multi-host slice. You declare how tensors are sharded across a device mesh; the compiler (Shardy) inserts every collective. Data parallelism as the worked example, the Auto/Explicit/Manual control spectrum, and why the first failure is always at rendezvous — a networking bug, not a TPU bug.
+tags: [ml-systems, parallelism, software]
+difficulty: intermediate
+estimatedMinutes: 14
+level: 200
+prerequisites: []
+relatedTo: [ml-systems/jax-xla-stack, ml-systems/tpu-topologies, ml-systems/tpu-provisioning-vm]
+videos: []
+flashcards:
+  - front: The SPMD contract in one line
+    back: One identical compiled binary runs on every host; each holds a shard of the data; and the compiler inserts every cross-device collective. You declare the layout — you never hand-write a send/recv.
+  - front: How do you declare a sharding in JAX?
+    back: A Mesh (a named grid of devices, e.g. jax.make_mesh((2,4), ('data','model'))) + a PartitionSpec (each tensor dim is None=replicated, a mesh-axis name, or a tuple of axes), combined as a NamedSharding. Shardy propagates it and inserts the collectives.
+  - front: The three control modes
+    back: Auto (Shardy propagates your shardings and inserts collectives — the declarative default), Explicit (the sharding lives in the value's type — "sharding in types"), and Manual (jax.shard_map — you write the per-device code and collectives yourself). Start auto; drop to shard_map for exact control.
+  - front: Which network carries what?
+    back: Rendezvous (hosts finding each other at startup, via the coordinator) rides the DCN. Gradient all-reduce inside a slice rides the fast ICI. Mixing them up is how you misread a startup hang as a compute problem.
+quiz:
+  - question: Which partitioner does JAX use to insert collectives today?
+    choices:
+      - GSPMD
+      - Shardy
+      - You write the collectives by hand
+    answer: 1
+    explanation: Shardy — JAX's MLIR-based partitioner, the default since JAX 0.7.1 and the successor to GSPMD. Given your shardings it inserts the all-reduce/all-gather/etc. for you. (GSPMD is the predecessor being removed; shard_map is the opt-in manual path.)
+  - question: In data-parallel training, which collective does the backward pass need?
+    choices:
+      - all-gather, to collect the full batch
+      - all-reduce, to sum gradients across shards
+      - none — each device trains independently
+    answer: 1
+    explanation: Each device computes gradients on its slice of the batch; an all-reduce sums them so every replica agrees before the optimizer step. Without it, the replicas would drift apart.
+  - question: A multi-host job hangs at startup with a barrier timeout — no chip has done any work yet. Where do you look first?
+    choices:
+      - The TPU chips — one is probably faulty
+      - DCN reachability — firewall, IP, or MTU between hosts
+      - The model code — a shape is probably wrong
+    answer: 1
+    explanation: A startup barrier timeout means a host couldn't reach the coordinator over the DCN. It's a networking bug (firewall rule, wrong coordinator IP, MTU), not a TPU fault — the chips haven't run anything yet.
+status: published
+---
+
+## The one-line summary
+
+L200 opened the compiler black box on one host (2.1). Now the slice grows: **the same
+binary runs on every host**, and the trick is that you never write the networking. You
+**declare how each tensor is split** across the devices, and the compiler —
+<Term id="shardy">Shardy</Term> — inserts every cross-device communication. The whole
+lesson in one sentence: *describe the layout, the compiler generates the comms.* And when a
+multi-host job breaks, it breaks first at **rendezvous** — which makes it a networking bug,
+not a TPU bug.
+
+## One program, every host (SPMD)
+
+A multi-host slice doesn't run a driver that farms work out to workers. It runs
+<Term id="spmd">SPMD</Term>: **every host executes the identical `main.py`**, JAX stitches
+their local chips into one global device grid, and each host quietly operates on its own
+shard of the data.
+
+<Callout type="tip">
+**Reading this as an infra engineer.** SPMD is the same binary fanned out to every node —
+closer to a DaemonSet or a set of MPI ranks than to a coordinator-and-workers design. There's
+no central scheduler dispatching ops at runtime. Each host runs the whole program; the only
+thing that differs between them is *which slice of the tensors they hold.*
+</Callout>
+
+## Declaring a sharding
+
+You glue the devices into a <Term id="mesh">mesh</Term> — a named grid — and then say how a
+tensor's dimensions map onto its axes:
+
+```python
+mesh = jax.make_mesh((2, 4), ('data', 'model'))   # 8 devices, 2 named axes
+sharding = jax.sharding.NamedSharding(mesh, jax.sharding.PartitionSpec('data', None))
+x = jax.device_put(batch, sharding)                # batch split across 'data', features replicated
+```
+
+A `PartitionSpec` is just a per-dimension rule: each entry is `None` (replicated — every
+device holds the whole thing), a **mesh-axis name** (split along that axis), or a tuple of
+axes. That's the *entire* declaration. You never said *how* to communicate — only *how the
+data is laid out*.
+
+<Term id="shardy">Shardy</Term> takes it from there: it propagates your shardings through the
+jitted program and **inserts the <Term id="collective">collectives</Term>** (all-reduce,
+all-gather, reduce-scatter) that make the math come out right on split data.
+
+<Callout type="note">
+**Infra bridge.** This is a query planner, not a hand-rolled protocol. You declare a
+partition key (the `PartitionSpec`); the planner (Shardy) decides what **shuffle** the
+computation needs and emits it. The bytes those collectives move — over
+<Term id="ici">ICI</Term> inside a slice, the slower <Term id="dcn">DCN</Term> across
+slices — are the real cost of going parallel.
+</Callout>
+
+Pick a mesh and a `PartitionSpec` below and watch which chip owns which shard, which
+collective Shardy has to insert, and how many bytes it puts on the wire:
+
+<Simulation id="spmd-shard-explorer" height={560} />
+
+## Data parallelism: the canonical case
+
+The first sharding everyone reaches for is **data parallelism**: split the *batch* across the
+`data` axis, **replicate** the parameters on every device. Each device runs the forward and
+backward pass (the backward pass is just where the gradients come from — no calculus needed
+here) on its slice of the batch — and then the gradients have to be reconciled, or the
+replicas drift apart. That reconciliation is exactly one <Term id="all-reduce">all-reduce</Term>:
+sum the gradients across every shard, hand everyone the same result, then step the optimizer.
+
+That all-reduce is the dominant communication in data-parallel training, and it rides the fast
+<Term id="ici">ICI</Term> ring inside a slice — which is *why* the topology lesson cared so much
+about putting a long torus axis where the all-reduce lives.
+
+## The control spectrum: Auto → Explicit → Manual
+
+"Declare the layout, the compiler does the comms" describes the two **declarative** modes —
+and that's where you should start. JAX gives you a spectrum of control:
+
+- **Auto** — you annotate a few shardings; Shardy propagates them and inserts every collective.
+  The least code; `jax.sharding.Mesh` uses this.
+- **Explicit** ("sharding in types") — the sharding becomes part of a value's JAX type, so it's
+  visible and checkable rather than inferred. `jax.make_mesh` uses this — so the first code
+  block above is Explicit. (Both modes are declarative: you annotate, the compiler inserts the
+  collectives.)
+- **Manual** — <Term id="shard_map">`jax.shard_map`</Term>: you write the per-device code and
+  the collectives (`jax.lax.psum`, …) **yourself**. Maximum control, maximum rope.
+
+<Callout type="tip">
+**Infra bridge.** It's the same ladder as data access: **ORM → typed query builder → raw SQL.**
+Auto is the ORM (concise, the engine plans the work); Explicit is the typed builder (the plan is
+visible in the types); `shard_map` is raw SQL (you hand-write exactly what runs). Reach down the
+ladder only when the layer above can't express what you need.
+</Callout>
+
+## Rendezvous is a networking step
+
+Before any chip does math, the hosts have to **find each other**. One call —
+`jax.distributed.initialize()` (no arguments on Cloud TPU; it auto-detects) — points every
+process at a <Term id="coordinator">coordinator</Term> (process 0) and waits at a barrier until
+all of them check in. *Then* the program runs.
+
+This is the multi-host trap. The rendezvous rides the <Term id="dcn">DCN</Term> — the same
+host-to-host network with the MTU-8896 and firewall requirements from the provisioning lesson —
+**not** the ICI. So the classic first failure is a **barrier timeout at startup**: one host
+can't reach the coordinator. The chips are idle; nothing compiled wrong. You look at DCN
+reachability — firewall rules, the coordinator's IP, MTU — exactly the gang-scheduling /
+leader-election failure you already know from Kubernetes, not a TPU fault.
+
+And it stays all-or-nothing *after* startup: an SPMD job is **gang-scheduled**, so if a host
+or its DCN link dies mid-run, the whole job goes down — blast radius is the entire slice. You
+don't lose the run, though: you restart from the last **checkpoint** (Orbax, the next lesson's
+star). Plan capacity and checkpoint cadence around that all-or-nothing failure domain.
+
+## Why this matters
+
+Every megascale job you'll operate is SPMD: one binary, sharded data, compiler-inserted comms.
+The engineer who treats the network as magic guesses when it stalls; the one who knows that
+*you declared the layout and Shardy generated the collectives* can read where the bytes go, size
+the all-reduce against ICI, and — when it hangs at the barrier — look at the DCN instead of
+blaming the chips. That's the difference between a multi-host job that takes an afternoon to
+bring up and one that takes a week.
+
+## Put it together
+
+<Steps>
+<Step title="Read a sharding off the mesh">
+In the explorer, set a 2×4 mesh and try `PartitionSpec('data', None)`, then `(None, 'model')`,
+then fully replicated. For each, say which chips hold which shard and which collective Shardy
+inserts.
+</Step>
+<Step title="Place the all-reduce">
+Explain why data-parallel training needs an all-reduce on the backward pass, and which network
+(ICI vs DCN) you want it to ride on a single slice.
+</Step>
+<Step title="Pick a point on the spectrum">
+Name the three control modes (Auto, Explicit, Manual) and say when you'd drop from Auto down to
+`shard_map` — and what you give up by doing so.
+</Step>
+<Step title="Debug the hang">
+A fresh multi-host job times out at the startup barrier before any step runs. State the single
+most likely cause and the first three things you'd check.
+</Step>
+</Steps>
