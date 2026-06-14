@@ -1,4 +1,20 @@
-# SME personas
+# Personas
+
+Two kinds live here, distinguished by the `kind:` front-matter field:
+
+- **SME author personas** (`kind` omitted) — the voice and standard an authoring
+  agent adopts to research, plan, draft, and revise a topic. Content is written by
+  a consistent "expert," not a generalist.
+- **Audience reviewer personas** (`kind: audience-reviewer`) — the *target learner*
+  a reviewer agent adopts to read finished or draft content and report where that
+  reader gets lost. They judge **comprehensibility, not correctness** (the SME owns
+  correctness). See [`audience-infra-engineer.md`](audience-infra-engineer.md), the
+  reviewer for the `tpu-training-infra` path; it's wired to the `audience-reviewer`
+  subagent (`.claude/agents/audience-reviewer.md`). Pass any new topic, simulation,
+  or notebook to that subagent before shipping to surface undefined jargon, missing
+  host/chip framing, and "so what for my job" gaps.
+
+## SME author personas
 
 Each topic has a **Subject-Matter Expert persona** — the voice and standard an
 authoring agent adopts to research, plan, draft, and revise that topic. A persona
