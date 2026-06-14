@@ -17,6 +17,8 @@ flashcards:
     back: Drop the 2 circuits into the dead cube, raise 2 new ones to the hot spare — 4 mirror moves, a few milliseconds, and the job's torus shape is preserved.
   - front: What does the OCS layer cost?
     back: Less than 5% of system cost and about 3% of power (TPU v4 ISCA paper) — in exchange for slicing, healing, and per-job reshaping of a 4,096-chip pod.
+  - front: How does the OCS keep a beam aligned for a week-long job?
+    back: A second wavelength. The data is O-band signal light; an 850 nm monitor beam rides alongside it (merged/split by a dichroic mirror) and is read by a camera. The camera sees where each beam lands and a control loop nudges the MEMS mirrors back on target — closed-loop alignment (Mission Apollo, 2022).
 quiz:
   - question: To change which cube talks to which, what physically changes?
     choices:
@@ -74,6 +76,24 @@ photons see. The same pulse is drawn in both. Walk the five operations:
    spare: **4 mirror moves** and the job keeps its torus shape.
 5. **Topology shuffle** — every press is a new network, born purely from mirror
    angles. Circuits are set **per job**, never per packet.
+
+## Keeping the beam locked: the two-color trick
+
+A fair question: how does a tilted mirror reliably hit a fiber thousands of mirror-widths
+away — and *hold* it for a week-long job, through vibration and thermal drift? Apollo's
+answer is a second color. The data rides **O-band signal light**; alongside it, an
+**850 nm monitor beam** is injected and read by a **camera**, merged and split by a
+**dichroic mirror** (one that reflects one wavelength and passes the other). The camera sees
+exactly where each beam lands, and a control loop nudges the MEMS mirrors back on target —
+**closed-loop alignment**. That servo is what makes an all-optical switch reliable enough to
+anchor a 4,096-chip pod with no packets to retransmit.
+
+<Figure
+  src="/media/ocs-beam-steering.svg"
+  alt="Cross-section of the OCS optical path. A fiber-and-lens array on the left sends green O-band signal light up to a first 2D MEMS array of 136 mirrors, across to a second 136-mirror array, and down to a fiber array on the right. Above, a purple injection module emits an 850 nm monitor beam that a dichroic splitter merges into the path; a second dichroic splitter peels it back out to a blue camera module — a closed loop that holds the mirrors aligned."
+  caption="The two-color trick: O-band signal light (green) is steered between two fiber arrays by two 136-mirror MEMS arrays, while an 850 nm monitor beam (rose) — merged and split by dichroic mirrors and read by a camera — drives closed-loop alignment of those mirrors."
+  credit="Recreated in house style; design after Google's Mission Apollo (2022)."
+/>
 
 ## Why the cube is the unit
 
