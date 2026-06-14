@@ -52,6 +52,16 @@ lesson in one sentence: *describe the layout, the compiler generates the comms.*
 multi-host job breaks, it breaks first at **rendezvous** — which makes it a networking bug,
 not a TPU bug.
 
+<Callout type="tip">
+**Run it yourself.** This lesson has a companion
+[Colab notebook](https://colab.research.google.com/github/thebobrovs/LMS-content/blob/main/notebooks/spmd-multi-host.ipynb)
+where you build a mesh, shard a tensor three ways and *see* who holds what, watch the compiler
+insert the `all-reduce` you never wrote, and compare automatic sharding with manual `shard_map`.
+It runs on the default **CPU** runtime with **8 fake devices** — which behave identically to real
+chips for everything but timing — and a TPU runtime works too. (True multi-*host* rendezvous needs
+≥2 VMs, so the notebook shows that API but can't run it; the failure story below is why.)
+</Callout>
+
 ## One program, every host (SPMD)
 
 A multi-host slice doesn't run a driver that farms work out to workers. It runs
