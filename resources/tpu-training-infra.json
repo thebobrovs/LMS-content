@@ -32,5 +32,19 @@
     "title": "Jupiter Rising: Clos topologies & centralized control (SIGCOMM 2015)",
     "url": "https://dl.acm.org/doi/pdf/10.1145/2829988.2787508",
     "note": "Google's datacenter-network paper — the centralized, software-defined control plane that later reconfigures the OCS. Background on the SDN/Clos foundation, not the OCS itself; for OCS specifics see the Mission Apollo (2022) and TPU v4 ISCA (2023) papers."
+  },
+  {
+    "type": "link",
+    "topic": "ml-systems/tpu-ocs",
+    "title": "Mission Apollo: Optical Circuit Switching at datacenter scale (2022)",
+    "url": "https://arxiv.org/pdf/2208.10041",
+    "note": "The OCS primary source. The Palomar 136×136-port MEMS switch, the dual-wavelength design (O-band signal + an 850 nm monitor beam with a camera and dichroic splitter for closed-loop mirror alignment), and how Google landed all-optical switching in production."
+  },
+  {
+    "type": "link",
+    "topic": "ml-systems/tpu-ocs",
+    "title": "TPU v4: An Optically Reconfigurable Supercomputer (ISCA 2023)",
+    "url": "https://arxiv.org/pdf/2304.01433",
+    "note": "How the OCS is used inside the TPU v4 supercomputer: 64-chip cubes wired by 128-port OCSes into a reconfigurable 3D torus, per-job topology, and the <5%-cost / ~3%-power figures this topic cites."
   }
 ]
