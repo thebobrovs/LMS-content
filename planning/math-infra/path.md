@@ -1,6 +1,6 @@
 # Math for ML/AI Workloads — path blueprint (TLDR)
 
-**Path id:** `math-infra` · **Status:** BLUEPRINT — awaiting map sign-off (then a plan per topic, then build)
+**Path id:** `math-infra` · **Status:** MAP APPROVED — planning topic-by-topic
 **Audience:** the infra/SRE learner (`personas/audience-infra-engineer.md` — "Sam") — strong on distributed
 systems, Linux, networking, GKE; new to AI math, no calculus/linear-algebra background. *Related to*
 `tpu-training-infra` but it stands on its own: the math intuition behind **any** ML/AI workload, not just TPUs.
@@ -71,10 +71,8 @@ Built blueprint-first: this doc → a plan per topic → build topic by topic, s
    related to `tpu-training-infra` but standalone. ✅
 3. **Capped at L200**, systems translation only, no derivations. ✅
 4. **Light Hard-Knocks** reasoning exercises (predict the OOM / tune the LR / pick the better shape). ✅
-
-**Open (need your call):**
-5. **Structure** — standalone `math-infra` path *(recommended)* vs. prepend into `tpu-training-infra`.
-6. **Sequencing** — hard prerequisite vs. *recommended-alongside* companion *(recommended)*.
+5. **Structure** — **standalone `math-infra` path** (not prepended into `tpu-training-infra`). ✅
+6. **Sequencing** — **recommended-alongside** companion to the TPU path, not a hard prerequisite. ✅
 
 ## Reuse & dedup (now lower-risk)
 Because the new sims take a *different angle* (the bits of a float, a loss surface, a memory budget, an
