@@ -63,27 +63,24 @@ benchmark also lights up on a free **`v5e-1`** TPU runtime (`Runtime → Change 
 
 You write NumPy-like Python. The TPU runs machine code. Here's the bridge:
 
-1. **Trace.** When you call a `jax.jit`-decorated function the first time, JAX
-   <Term id="tracing">runs it once with *abstract* values to record a static graph</Term>
-   of operations. (Shapes are frozen at trace time — change an input shape and it
-   recompiles. That's the classic "why did my step suddenly get slow?")
+1. **Trace — on the host CPU.** When you first call a `jax.jit`-decorated function, JAX runs
+   it once on the **host VM** — burning host **CPU and RAM**, with the TPU sitting idle — using
+   *abstract* values to <Term id="tracing">freeze your dynamic Python into a static graph</Term>.
+   This step exists because of a hardware mismatch: ordinary Python is dynamic and allocates
+   memory on the fly, but a TPU is rigid — it needs strict, **pre-allocated
+   <Term id="hbm">HBM</Term> layouts** *before* it will accept any work. Tracing freezes every
+   tensor shape so XLA can compute exactly how many bytes of HBM to reserve. (Change an input
+   shape and it re-traces and recompiles — the classic "why did my step suddenly get slow?")
 2. **Lower to StableHLO.** The graph becomes **StableHLO**, a portable, hardware-neutral
    intermediate language.
-3. **Compile with <Term id="xla">XLA</Term>.** XLA optimizes the StableHLO — most
-   importantly it **<Term id="fusion">fuses</Term>** ops — and emits an executable for
-   your target (TPU, GPU, or CPU — the *same* program).
+3. **Compile with <Term id="xla">XLA</Term> — also on the host.** XLA optimizes the StableHLO —
+   most importantly it **<Term id="fusion">fuses</Term>** ops — and emits an executable for your
+   target (TPU, GPU, or CPU — the *same* program). This compile *also* runs on the host's CPU and
+   RAM; the **TPU chip stays completely idle** until XLA finishes and ships the binary over
+   **PCIe**. (That's exactly why a **compilation cache** is worth so much on multi-host jobs —
+   you don't want every host paying the same compile.)
 
 You never hand-write a kernel. You shape the Python; XLA writes the silicon's code.
-
-<Callout type="note">
-**Reading this as an infra engineer.** Both the tracing and the XLA compile run **on the
-host** — they burn CPU and RAM on the <Term id="tpu vm">TPU VM</Term>, and the chip stays
-idle until XLA ships the finished binary over PCIe (nothing touches the
-<Term id="mxu">MXU</Term> yet). That's why the **compilation cache** below matters: on a
-multi-host job you don't want every host paying the same compile. And it's *why* tracing
-exists — a TPU needs fixed, pre-allocated <Term id="hbm">HBM</Term> layouts, so JAX freezes
-your dynamic Python into static shapes before a single byte is allocated.
-</Callout>
 
 ## Fusion: the optimization that matters most
 
@@ -93,6 +90,15 @@ A transformer layer is a matmul followed by a chain of cheap elementwise ops —
 <Term id="hbm">HBM</Term> and writes its output back** — a round-trip per op. Fusion
 merges the chain into one kernel: the matmul reads its inputs once, the elementwise
 work rides along in its *epilogue* on-chip, and only the final result is written back.
+
+<Callout type="tip">
+**Infra engineers: skip the calculus.** You don't need to know *what* a GELU computes — only
+its **systems profile**. Bias, GELU and scale are **element-wise** ops: one cheap arithmetic
+operation per element, but each one reads the *entire* tensor from HBM and writes the entire
+tensor back. That's almost no compute per byte moved — so on their own they're pure
+**memory-bandwidth** traffic, and they stall the chip waiting on HBM. Unfused, this trivial
+math becomes the bottleneck; fused, the bytes never leave the chip and the stall disappears.
+</Callout>
 
 Same FLOPs, far fewer bytes — which is exactly the
 <Term id="arithmetic intensity">arithmetic intensity</Term> lever from the systolic-array
