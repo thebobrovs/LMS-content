@@ -1,35 +1,39 @@
-# Math for Infra AI — path blueprint (TLDR)
+# Math for ML/AI Workloads — path blueprint (TLDR)
 
 **Path id:** `math-infra` · **Status:** BLUEPRINT — awaiting map sign-off (then a plan per topic, then build)
-**Audience:** the same infra/SRE learner as `tpu-training-infra` (`personas/audience-infra-engineer.md` —
-"Sam") — experienced with distributed systems, Linux, networking, and GKE, but new to AI math. The
-learner who keeps hitting *"why bf16? why multiples of 128? why does a gradient hammer the network?"*
-and has no calculus/linear-algebra background to answer it.
-**Outcome (definition of done):** read *why the math behaves the way it does* — precision/memory
-boundaries, tensor shapes, gradient bandwidth, topology graphs — well enough to **provision and operate**
-the systems, with **zero derivations** (no backprop, no calculus, no graph-theory proofs).
+**Audience:** the infra/SRE learner (`personas/audience-infra-engineer.md` — "Sam") — strong on distributed
+systems, Linux, networking, GKE; new to AI math, no calculus/linear-algebra background. *Related to*
+`tpu-training-infra` but it stands on its own: the math intuition behind **any** ML/AI workload, not just TPUs.
+**Outcome (definition of done):** read *why the math behaves the way it does* — number precision, tensor
+shapes, **how learning actually works (gradient descent)**, the distributed cost of gradients, and network
+topology — well enough to **provision, size, and operate** ML/AI systems, with **zero derivations** (no
+calculus, no backprop proofs, no graph-theory proofs).
 
 ## Why
-Today the math intuition is taught *late and scattered* — buried inside the hardware topics, so the
-learner meets the silicon before the "why." The audience-reviewer (Sam) keeps surfacing the same gap:
-"you don't need the math, but here's the systems translation" glosses bolted onto GELU, arithmetic
-intensity, the 128-tile padding trap, gradients, the torus. This track **front-loads** those intuitions
-as first-class topics so the why lands first and the hardware path just reinforces it.
+Today the math intuition is taught *late and scattered* — buried inside the hardware topics, so the learner
+meets the silicon before the "why," and never sees the general ML-math picture (what training *is*). The
+audience-reviewer (Sam) keeps surfacing the same gap: "you don't need the math, but here's the systems
+translation" glosses bolted onto GELU, arithmetic intensity, the 128 tile, gradients, the torus. This track
+**front-loads** those intuitions as first-class topics — generalized to ML/AI, not TPU-specific — so the why
+lands first and every hardware path just reinforces it.
 
 ## What
-Two themes, **capped at L200** (no L300/L400 depth) — give the systems translation, never the derivation:
-- **Math for the Metal** (L100) — how numbers and dimensions dictate memory boundaries and throughput.
+A self-contained **Math for ML/AI Workloads** track, **capped at L200** — systems translation, never the
+derivation. Three arcs:
+- **Math for the Metal** (L100) — how numbers and dimensions dictate memory and throughput.
+- **Math of Learning** (L200) — what training actually is: gradient descent, and why it drives the infra.
 - **Math for the Network** (L200) — how training math becomes distributed networking problems.
 
-**Non-goals:** derivatives/backprop, loss-function math, graph-theory proofs, anything needing calculus
-or linear algebra. Not an ML-modeling course; not a re-teach of the hardware (that's `tpu-training-infra`).
+**Non-goals:** computing derivatives, loss-function calculus, graph-theory proofs, full ML modeling. We
+build the mental model and the systems consequence, not the derivation.
 
 ## How
-Every topic = a **concept lesson + a REUSED browser simulation** (we already built the sims; this track
-gives them their math home), with the **SRE bridge on every beat** and a light **Hard-Knocks** reasoning
-exercise (start from a wrong/sub-optimal number → apply the principle → correct it). **No new sims.**
-Each topic is **Sam-gated** (verdict `Clear`) before it ships. Built blueprint-first: this doc → a plan
-per topic → build topic by topic, signing off each.
+Every topic = a **concept lesson + one or more NEW browser simulations**, each giving a *different view* of
+the idea (e.g., the bits of a float **and** the roofline; a loss surface **and** a convergence curve) — multiple
+angles per topic, because that's where deeper understanding comes from. SRE bridge on every beat; a light
+**Hard-Knocks** reasoning exercise; **Sam-gated** (`Clear`) before ship. New sims follow our standard (real
+`createSim`, Hyperstack tokens + light/dark, `prefers-reduced-motion`, one observe-checkpoint, deterministic).
+Built blueprint-first: this doc → a plan per topic → build topic by topic, signing off each.
 
 ## Topic map
 
@@ -38,42 +42,54 @@ per topic → build topic by topic, signing off each.
 ### L100 — Math for the Metal (Arithmetic & Shapes)
 *How numbers and dimensions dictate memory boundaries and throughput.*
 
-| ID | Topic (`id`) | What / How / Why | Hard-Knocks Lab | Visual / lab | Status |
-|----|--------------|------------------|-----------------|--------------|--------|
-| M1.1 | `precision-and-memory` | "Bytes are the lever": why AI uses bf16/fp4 instead of fp32 — halving the bytes on the bus doubles **arithmetic intensity** and keeps the MXU fed. The dynamic-range-vs-precision trade (bf16 keeps fp32's exponent, drops mantissa; fp16 keeps precision but **overflows**). Systems framing: precision = a wire-format/compression trade; range = overflow/underflow; bandwidth-bound = a saturated bus. | Find the magnitude where **fp16 → inf but bf16 holds**; explain why, in one sentence, from the exponent bits. | sims `bf16-vs-fp32` + `arithmetic-intensity-calculator` (**reuse**) | planned |
-| M1.2 | `tensor-shapes` | "Why dimensions matter to an operator": TPUs are rigid (XLA static shapes); a dimension not a multiple of the **128×128 MXU tile** is silently **zero-padded** → wasted compute + memory → surprise **OOMs**. Tensor = shaped array; the tile; padding math. Framing: padding ≈ disk-block/page rounding; a 129-wide matmul pads to 256 ≈ 4× waste. | A job that "should fit" **OOMs**: spot the dim that's `128k+1`, realign to a multiple of 128, recover the memory. | sim `arithmetic-intensity-calculator` (padding trap) (**reuse**) | planned |
+| ID | Topic (`id`) | What / How / Why | Hard-Knocks Lab | New sim(s) — *different views* | Status |
+|----|--------------|------------------|-----------------|-------------------------------|--------|
+| M1.1 | `precision-and-memory` | Bytes are the lever: bf16/fp4 beat fp32 because halving the bytes doubles **arithmetic intensity** and keeps the MXU fed; the range-vs-precision trade (bf16 keeps fp32's exponent, drops mantissa; fp16 overflows). | Find the magnitude where **fp16 → inf but bf16 holds**; explain it from the exponent bits. | **NEW `number-format-explorer`** — drag a value, watch the sign/exponent/mantissa bits and where it rounds or overflows across fp32/bf16/fp16/fp4. *2nd view:* reuse `arithmetic-intensity-calculator` (bytes → intensity → roofline). | planned |
+| M1.2 | `tensor-shapes` | TPUs/accelerators are rigid: a dimension not a multiple of the **128 MXU tile** is zero-padded → wasted compute + memory → surprise **OOMs**. Tensor = shaped array; matmul shapes; padding math. | A job that "should fit" **OOMs**: spot the `128k+1` dim, realign, recover the memory. | **NEW `matmul-tiler`** — drag M/K/N dims, see the 128×128 tiling grid, the padded zeros, and the wasted FLOP/memory %. | planned |
 
-### L200 — Math for the Network (Gradients & Graphs)
-*How training math becomes distributed networking problems.*
+### L200 — Math of Learning (Gradient Descent)
+*What training actually is — and why it shapes every operational decision.*
 
-| ID | Topic (`id`) | What / How / Why | Hard-Knocks Lab | Visual / lab | Status |
-|----|--------------|------------------|-----------------|--------------|--------|
-| M2.1 | `gradients-and-bandwidth` | "A gradient is an SRE problem": it's a **massive data payload** synced across devices (**all-reduce**) every backward pass — the network cost of training. **Optimizer-state bloat** (Adam ≈ 2× the params in fp32 for momentum + variance) is the memory footprint that OOMs. We never compute a derivative. Framing: all-reduce ≈ a network shuffle (bytes-on-the-wire = cost); optimizer state ≈ per-parameter bookkeeping you must budget HBM for. | Size the **optimizer + gradient memory** for a given model; decide whether it fits per-chip HBM, and if not, what to shard. | sim `spmd-shard-explorer` (all-reduce bytes) (**reuse**) | planned |
-| M2.2 | `topology-graphs` | "How to evaluate the wiring": the torus is a **graph**. 3D coordinates, **modulo arithmetic** for wrap-around edges, "twisting." Mapped to advanced network engineering: shortest-path trees, **hop count**, **network diameter**, **bisection bandwidth**. Twisting a torus = a graph trick to shrink diameter and raise bisection bandwidth — no proofs. | Two slice shapes, same chip count: pick the one with the **lower diameter / higher bisection**, and say why in graph terms. | sims `torus-3d` + `tpu-topology-explorer` (**reuse**) | planned |
+| ID | Topic (`id`) | What / How / Why | Hard-Knocks Lab | New sim(s) — *different views* | Status |
+|----|--------------|------------------|-----------------|-------------------------------|--------|
+| M2.1 | `gradient-descent` | What "training" means without the calculus: a **loss surface**, the gradient points downhill, you take **many small steps**; the **learning rate** sets step size (too big → diverge/oscillate, too small → crawl); momentum. *Why infra cares:* training is thousands of iterative steps, not one shot — which is why jobs run for weeks, need checkpoints, and carry optimizer state. | Given a diverging run, decide: is the **learning rate** too high or the data bad? Tune it to converge. | **NEW `gradient-descent-explorer`** — a 2D loss landscape with a stepping marker + LR/momentum sliders. *2nd view:* a live **loss-vs-step convergence curve** (same sim) showing diverge/oscillate/converge. | planned |
+
+### L200 — Math for the Network (Distributed Gradients & Graphs)
+*How training math becomes distributed networking and memory problems.*
+
+| ID | Topic (`id`) | What / How / Why | Hard-Knocks Lab | New sim(s) — *different views* | Status |
+|----|--------------|------------------|-----------------|-------------------------------|--------|
+| M2.2 | `gradients-and-bandwidth` | The infra consequence of M2.1: each step's gradient is a **payload synced across devices** (**all-reduce**) — the network cost; and the **optimizer state** (Adam ≈ 2× the params) is the memory that OOMs. | Size **weights + grads + optimizer + activations** for a model; does it fit per-chip HBM? If not, what do you cut/shard? | **NEW `training-memory-budget`** — stacked bars (weights · grads · Adam state · activations) vs HBM; toggle precision/sharding to fit; watch it OOM. *2nd view:* reuse `spmd-shard-explorer` (the all-reduce on the wire). | planned |
+| M2.3 | `topology-graphs` | The torus is a **graph**: 3D coordinates, **modulo** wrap-around edges, "twisting." Mapped to network engineering: shortest-path trees, **hop count**, **diameter**, **bisection bandwidth**; twisting shrinks diameter and raises bisection. | Two slice shapes, same chip count: pick the lower-diameter / higher-bisection one, in graph terms. | **NEW `network-graph-explorer`** — an abstract node/edge graph with live diameter / bisection / hop-count metrics and a twist toggle. *2nd view:* reuse `torus-3d` (the physical 3D wiring). | planned |
 
 ## Decisions
 **Resolved (recommended; confirm at sign-off):**
-1. **Reuse-sims-only** — all four intuitions already have a built sim; this track is their math home, no new sims. ✅
-2. **Capped at L200** — give the systems translation, not the derivation; L300/L400 math is out of scope. ✅
-3. **Light Hard-Knocks** — reasoning exercises ("predict the OOM / pick the better shape"), not codelabs (these are math, not ops). ✅
+1. **Build NEW sims** (reverses the earlier reuse-only call) — each topic gets a fresh sim giving a
+   *different view*, often paired with a complementary view (a second new mode, or a reused hardware sim),
+   because multiple angles drive deeper learning. *Note: this is a larger build — ~5 new sims.* ✅
+2. **Generalized scope** — math for ML/AI workloads broadly (incl. **gradient descent**), not TPU-only;
+   related to `tpu-training-infra` but standalone. ✅
+3. **Capped at L200**, systems translation only, no derivations. ✅
+4. **Light Hard-Knocks** reasoning exercises (predict the OOM / tune the LR / pick the better shape). ✅
 
 **Open (need your call):**
-4. **Structure** — standalone `math-infra` path *(recommended)* vs. prepend as a "Level 0" math foundation inside `tpu-training-infra`.
-5. **Sequencing** — hard prerequisite for the TPU path vs. *recommended-alongside* companion *(recommended)*.
+5. **Structure** — standalone `math-infra` path *(recommended)* vs. prepend into `tpu-training-infra`.
+6. **Sequencing** — hard prerequisite vs. *recommended-alongside* companion *(recommended)*.
 
-## Reuse & dedup (the key risk)
-Most of this content already lives in the hardware topics + 5 sims (verified): `tpu-chip-systolic-array`
-(intensity, padding), the `bf16-vs-fp32` / `arithmetic-intensity-calculator` sims, `spmd-multi-host`
-(all-reduce), `tpu-topologies` / `tpu-ocs` (torus, twist, bisection). **Resolution:** the `math-infra`
-topics become the **canonical home** for the *math intuition*; the hardware topics keep their inline
-Sam-bridges but `relatedTo` the math topic and stop *re-deriving* the why. Each per-topic blueprint will
-name the exact overlap to thin, so we never teach arithmetic intensity or the torus twice in full.
+## Reuse & dedup (now lower-risk)
+Because the new sims take a *different angle* (the bits of a float, a loss surface, a memory budget, an
+abstract graph) than the existing TPU-hardware sims (`bf16-vs-fp32`, `systolic-array`, `torus-3d`,
+`spmd-shard-explorer`), they **complement** rather than duplicate — and several hardware sims appear as the
+optional "2nd view." The `math-infra` topics still become the canonical *math-intuition* home; the hardware
+topics keep their inline Sam-bridges and `relatedTo` the math topic instead of re-deriving. Per-topic
+blueprints will name the exact overlap to thin.
 
 ## Glossary
-New `glossary/math-infra.json` (per-path rule). Shared terms (arithmetic intensity, bf16, mxu, hbm,
-padding) are duplicated from `tpu-training-infra.json` — acceptable per the existing convention.
+New `glossary/math-infra.json` (per-path rule). Shared terms (arithmetic intensity, bf16, mxu, hbm, padding)
+duplicated from `tpu-training-infra.json`; new terms (gradient descent, learning rate, loss, optimizer state,
+diameter, bisection bandwidth, dynamic range, mantissa) defined here.
 
 ## Definition of done (per topic)
-Sam (infra/SRE, no ML math) reads it once and can explain the *why* in systems terms — no derivations,
-every claim a systems translation, the reused sim wired and theme/reduced-motion clean, every number
-traceable. **Sam verdict `Clear` before promote.**
+Sam (infra/SRE, no ML math) reads it once and can explain the *why* in systems terms — no derivations, every
+claim a systems translation, the new sim(s) wired to our standard and theme/reduced-motion clean, every
+number traceable. **Sam verdict `Clear` before promote.**
