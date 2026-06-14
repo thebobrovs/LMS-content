@@ -1,0 +1,159 @@
+---
+title: Precision & Memory — Why AI Uses "Weird" Number Formats
+summary: bf16, fp16, fp4 — not arbitrary. A number's byte width is a throughput lever — halving the bytes a value occupies doubles arithmetic intensity and keeps the matrix unit fed. The range-vs-precision trade, why fp16 overflows where bf16 holds, and how byte width moves a workload across the roofline, for infra engineers with no calculus.
+tags: [math-infra, numerics, performance]
+difficulty: beginner
+estimatedMinutes: 11
+level: 100
+prerequisites: []
+relatedTo: [ml-systems/tpu-chip-systolic-array, ml-systems/why-tpus]
+videos: []
+flashcards:
+  - front: A float = range + precision. Which bits do which?
+    back: The exponent sets dynamic range (how big/small it can reach); the mantissa sets precision (how finely it distinguishes nearby values). bf16 keeps fp32's 8-bit exponent (range) but cuts the mantissa (precision); fp16 does the opposite.
+  - front: Why does AI use bf16 over fp16 for training?
+    back: Range. Training values span ~1e-7 (tiny gradients) to ~1e5 (activations); only an 8-bit exponent covers both. fp16's 5-bit exponent overflows to inf past ~65,504. bf16 keeps fp32's range at half the bytes; the coarser precision averages out over millions of updates.
+  - front: Why does lower precision make the chip faster — not just smaller?
+    back: Arithmetic intensity = FLOPs ÷ bytes moved. Same math, fewer bytes → higher intensity → the matrix unit isn't waiting on memory. Halving the byte width roughly doubles intensity, pushing a workload from memory-bound toward compute-bound.
+  - front: What is fp4 (E2M1) and the catch?
+    back: A 4-bit float — 1 sign, 2 exponent, 1 mantissa — native on TPU 8t. A quarter of bf16's bytes (≈2× throughput), but a tiny ~0.5–6 range and 1 mantissa bit, so values must be scaled into range first. The throughput bet for inference and parts of training.
+quiz:
+  - question: Which 16-bit float overflows to infinity past ~65,504, and why?
+    choices:
+      - bf16 — too few mantissa bits
+      - fp16 — only a 5-bit exponent (narrow range)
+      - fp32 — it never overflows
+    answer: 1
+    explanation: fp16 spends its bits on precision (10 mantissa) and keeps only a 5-bit exponent, so its dynamic range tops out near 65,504. bf16 kept fp32's 8-bit exponent, so it holds the same value — range over precision.
+  - question: You switch a matmul from fp32 to bf16. What happens to arithmetic intensity?
+    choices:
+      - It halves (fewer bytes of compute)
+      - It roughly doubles (same FLOPs over half the bytes) → toward compute-bound
+      - It's unchanged — precision doesn't affect intensity
+    answer: 1
+    explanation: Arithmetic intensity is FLOPs per byte moved. Same FLOPs over half the bytes ≈ double the intensity, moving the workload up toward the roofline ridge and away from being memory-bound.
+  - question: A workload sits at 40 FLOP/byte on a chip whose roofline ridge is 165 FLOP/byte (e.g. a v5p). What's the bottleneck?
+    choices:
+      - Compute — the matrix unit is saturated
+      - Memory bandwidth — it's below the ridge, starved waiting on HBM
+      - Neither — 40 is above the ridge
+    answer: 1
+    explanation: Below the ridge (40 < 165) the chip is memory-bound — it finishes the math faster than memory can feed it, so the expensive matrix unit idles. Raising intensity (lower precision, bigger batches) moves it up toward the ridge.
+status: published
+---
+
+## The one-line summary
+
+Every infra engineer meets `bf16`, `fp16`, `fp4` and assumes the ML team is being
+fashionable. They're not — this is the most systems-y decision in the whole stack. **A
+number's byte width is a throughput lever.** Halve the bytes a value occupies and you halve
+the traffic it puts on the memory bus, which **doubles its
+<Term id="arithmetic intensity">arithmetic intensity</Term>** and keeps the expensive matrix
+unit *fed* instead of *starved*. The price is range and precision — and getting that wrong
+makes a training run silently blow up. This is the first number you reason about when you size
+memory or pick a config.
+
+## A float is range *plus* precision
+
+A floating-point number splits its bits into two jobs:
+
+- the **exponent** sets the **<Term id="dynamic range">dynamic range</Term>** — how big or how
+  small the value can get before it overflows to `inf` or underflows to `0`;
+- the **<Term id="mantissa">mantissa</Term>** sets the **precision** — how finely it can tell
+  nearby values apart.
+
+<Callout type="tip">
+**Infra bridge.** This is a wire-format choice, nothing more — like picking `int32` vs `int64`,
+or a compact serialization. You're deciding how many bytes each number costs and what you give
+up to shrink it. Two knobs: *reach* (exponent) and *resolution* (mantissa).
+</Callout>
+
+## bf16: range over precision
+
+<Term id="fp32">fp32</Term> spends 4 bytes: an 8-bit exponent (huge range) and a 23-bit
+mantissa (fine precision). **<Term id="bf16">bf16</Term>** keeps the *full 8-bit exponent* — the
+same reach as fp32 — and throws away mantissa bits to fit in **2 bytes**. The other 16-bit
+float, **<Term id="fp16">fp16</Term>**, makes the opposite bet: more mantissa, but only a 5-bit
+exponent, so it **overflows to `inf` past ~65,504**.
+
+Why training picks range: the values in a model span a *huge* dynamic range — tiny **gradients**
+(the per-step correction signals) near `1e-7` up to **activations** (the intermediate values
+flowing through the model) near `1e5` — and only an 8-bit exponent covers both. The coarser bf16
+precision averages out over millions of updates (rounding is random noise that cancels); lost
+*range* does not — one overflow to `inf` poisons everything downstream, and the run diverges.
+
+Drag a value and watch fp16 break where bf16 holds, and how little fp4 can represent at all:
+
+<Simulation id="number-format-explorer" height={500} />
+
+<Callout type="tip">
+**Infra bridge.** Overflow is the numeric version of an integer wrapping: blow past the format's
+range and you get `inf`/`NaN`, and the run is dead. bf16 vs fp16 is choosing a format with the
+*reach* your data needs over one with finer *resolution* it doesn't.
+</Callout>
+
+## Why fewer bytes = a faster chip
+
+Smaller isn't just cheaper to store — it's the lever that keeps the chip busy. The matrix unit
+can do far more math per second than <Term id="hbm">HBM</Term> can deliver bytes, so the real
+question is **<Term id="arithmetic intensity">arithmetic intensity</Term> = FLOPs
+(floating-point math ops) ÷ bytes moved.** Halve the bytes per number and you roughly *double* the intensity for the same math —
+pushing the workload from **memory-bound** (the <Term id="mxu">MXU</Term> idling, waiting on the
+bus) toward **compute-bound** (the MXU saturated, which is what you paid for).
+
+That's the <Term id="roofline">roofline</Term>: below the ridge you're starved on bandwidth,
+above it you're saturating compute. Lower precision is one of the main levers that gets you over
+it. Same value slider, now read off how byte width moves the workload across the ridge:
+
+<Simulation id="arithmetic-intensity-calculator" height={520} />
+
+<Callout type="tip">
+**Infra bridge.** Compute-bound = CPU pegged, you're using the hardware you're paying for.
+Memory-bound = waiting on the bus, expensive silicon idling. Precision is a knob that moves you
+between the two — exactly the kind of saturation trade you already tune.
+</Callout>
+
+## fp4 and where this is going
+
+The trend only goes one way: fewer bytes. **<Term id="fp4">fp4</Term>** (the OCP `E2M1` variant —
+1 sign, 2 exponent, 1 mantissa) is native on the **8t** (the 8th-generation training TPU) and runs
+at ~¼ bf16's bytes, roughly doubling throughput. The catch the sim makes obvious: with one mantissa bit and a ~0.5–6 range, fp4 rounds
+or overflows almost everything *raw* — so in practice values are **scaled into range** first. It's
+a throughput bet you take where you can afford the resolution loss (inference, parts of training).
+
+One detail that ties it together: the MXU multiplies in low precision but **accumulates partial
+sums in fp32** — a matmul builds each output by adding up a long string of products, and keeping
+that running sum in fp32 means the rounding doesn't pile up. You get the bandwidth win on the
+inputs without the running sum drifting.
+
+## Why this matters
+
+Every memory and throughput decision you'll make starts here. **Picking the precision** sets your
+HBM footprint (bf16 halves a checkpoint vs fp32) and your effective bandwidth (fewer bytes = more
+intensity). **Reading a roofline** tells you whether to reach for lower precision or a bigger batch.
+And when a run dies in `NaN`s, "did someone push it into fp16 and overflow?" is a real first
+question. The engineer who treats number formats as ML trivia guesses; the one who sees them as a
+byte-width-vs-range trade can size and debug the system.
+
+Where's the dial? Precision is usually the **ML team's training-config flag** — you'll *see*
+`bf16`/`fp16`/`fp8` in the run config rather than flip it yourself — and arithmetic intensity isn't
+on a standard Grafana board; you read it off the **roofline and the profiler's MFU**, not a scraped
+metric. Your job isn't to set the dial — it's to recognize the trade, size the memory it implies, and
+spot the failure mode (the `inf`/`NaN` overflow) when it shows up.
+
+## Put it together
+
+<Steps>
+<Step title="Break fp16, keep bf16">
+In the format explorer, push the value to a big activation (`1e5`). Which formats overflow, and
+which holds — and say in one sentence why, from the exponent bits.
+</Step>
+<Step title="Move the workload across the ridge">
+In the intensity calculator, switch the precision from fp32 to bf16 and read what happens to
+arithmetic intensity and to the memory-bound vs compute-bound verdict.
+</Step>
+<Step title="Place fp4">
+Explain why fp4 needs values *scaled into range* before it's usable, and what you're buying in
+return — in bytes and throughput.
+</Step>
+</Steps>

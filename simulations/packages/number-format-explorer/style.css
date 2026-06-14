@@ -28,8 +28,10 @@ input[type=range] { width: 100%; accent-color: var(--primary); margin: 8px 0; }
 .presets { display: flex; flex-wrap: wrap; gap: 8px; }
 .presets button { font: inherit; font-size: 12px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--fg); cursor: pointer; }
 
-.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
-@media (max-width: 560px) { .cards { grid-template-columns: 1fr; } }
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+@media (max-width: 700px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 380px) { .cards { grid-template-columns: 1fr; } }
+.card.fp4 .chead b { font-size: 12.5px; }
 .card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--panel); }
 .card.bf16 { border-color: var(--exp); box-shadow: 0 0 0 1px var(--exp); }
 .card.fail { border-color: var(--bad); }
@@ -49,10 +51,11 @@ input[type=range] { width: 100%; accent-color: var(--primary); margin: 8px 0; }
 
 .range { margin-bottom: 16px; }
 .rlabel { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-.raxis { position: relative; height: 46px; background: var(--inset); border: 1px solid var(--border); border-radius: 8px; }
-.rbar { position: absolute; height: 16px; border-radius: 4px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; overflow: hidden; }
+.raxis { position: relative; height: 64px; background: var(--inset); border: 1px solid var(--border); border-radius: 8px; }
+.rbar { position: absolute; height: 15px; border-radius: 4px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; overflow: hidden; }
 .rbar.wide { top: 6px; background: color-mix(in srgb, var(--exp) 70%, transparent); }
-.rbar.narrow { bottom: 6px; background: color-mix(in srgb, var(--bad) 60%, transparent); }
+.rbar.narrow { top: 25px; background: color-mix(in srgb, var(--bad) 60%, transparent); }
+.rbar.tiny { top: 44px; background: color-mix(in srgb, var(--sign) 70%, transparent); }
 .rmark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); }
 .rmark.out { background: var(--bad); width: 3px; }
 

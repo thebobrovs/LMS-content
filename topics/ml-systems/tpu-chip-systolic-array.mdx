@@ -175,7 +175,7 @@ That matters because ML training spans a *huge* range — tiny gradients near `1
 up to activations near `1e5` — and needs the **range** far more than the last digits
 of **precision**. Drag the value and watch fp16 break where bf16 holds:
 
-<Simulation id="bf16-vs-fp32" height={480} />
+<Simulation id="number-format-explorer" height={500} />
 
 So bf16 is the sweet spot: **fp32's range, half the memory** (→ 2× the arithmetic
 intensity), and the small rounding error averages out across millions of updates.

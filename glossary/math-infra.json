@@ -1,0 +1,40 @@
+{
+  "arithmetic intensity": {
+    "definition": "FLOPs performed per byte moved from memory — the single number that says whether you're compute-bound (good: the MXU is busy) or memory-bound (bad: the MXU sits starved, waiting on HBM). Raising it — bigger batches, lower precision, op fusion — is most of performance tuning."
+  },
+  "roofline": {
+    "definition": "The performance model that plots achievable FLOP/s against arithmetic intensity. The 'ridge' is where you flip from memory-bound to compute-bound: below it you're starved on bandwidth, above it you're saturating the chip. The whole game is getting above the ridge."
+  },
+  "fp32": {
+    "definition": "32-bit floating point — full precision and range, 4 bytes per number. The baseline format; AI training deliberately moves off it to halve or quarter the bytes on the bus."
+  },
+  "bf16": {
+    "definition": "bfloat16 — a 16-bit float that keeps fp32's full 8-bit exponent (the same dynamic range) but drops mantissa bits (coarser precision). Halves the bytes moved versus fp32 while staying numerically stable for training; the default matmul type on TPUs."
+  },
+  "fp16": {
+    "definition": "A 16-bit float that spends its bits on precision (10 mantissa), leaving only a 5-bit exponent — so it overflows to infinity past ~65,504. The cautionary contrast to bf16, which traded precision for range instead."
+  },
+  "fp4": {
+    "definition": "4-bit floating point (native on TPU 8t); the OCP-standard variant is E2M1 — 1 sign, 2 exponent, 1 mantissa bit, range ~0.5–6. A quarter of bf16's bytes (≈2× MXU throughput), but so little range/precision that values are scaled into range before use; mostly inference and parts of training."
+  },
+  "dynamic range": {
+    "definition": "The span from the smallest to the largest magnitude a number format can represent — set by its exponent bits. Too small and values overflow to inf or underflow to 0 (training diverges). bf16 keeps fp32's range; fp16 sacrifices it for precision."
+  },
+  "mantissa": {
+    "definition": "The precision bits of a float — how finely it can distinguish nearby values (vs. the exponent, which sets the range). bf16 keeps fp32's exponent but cuts the mantissa: coarser steps, same reach."
+  },
+  "mxu": {
+    "definition": "Matrix Multiply Unit — the systolic array at a TPU's core: a 128×128 grid of multiply-accumulators (256×256 on v6e/v7) that computes one matrix-multiply tile per pass. The reason tensor dimensions want to be multiples of 128.",
+    "href": "https://cloud.google.com/tpu/docs/v5p",
+    "linkLabel": "TPU v5p docs"
+  },
+  "hbm": {
+    "definition": "High-Bandwidth Memory — the fast on-package DRAM that feeds a TPU's compute units (≈95 GB at ≈2.8 TB/s on v5p). Bandwidth to HBM is the wall that arithmetic intensity is measured against, and capacity is what an OOM runs out of."
+  },
+  "tensor": {
+    "definition": "An N-dimensional array of numbers — a batch of inputs, a weight matrix, a layer's activations. Its shape (the size of each dimension) is what sets its memory footprint and how it tiles onto the MXU."
+  },
+  "padding": {
+    "definition": "XLA zero-pads tensor dimensions up to the MXU tile (128, or 256 on v6e/v7) and the memory lanes (multiples of 8). A dimension just over a multiple silently rounds up — burning compute and on-chip memory on padded zeros, a common cause of surprise OOMs."
+  }
+}
