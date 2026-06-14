@@ -16,7 +16,7 @@ flashcards:
   - front: JIT vs AOT in JAX
     back: Same XLA compiler, different timing. JIT compiles on the first call (and caches). AOT — jax.jit(f).lower(args).compile() — compiles without running, so you can inspect the HLO and the memory analysis and catch an OOM before you ever touch a slice.
   - front: The JAX AI stack pieces
-    back: JAX (numerics + transforms) · Flax NNX (the model/module system — the recommended API; Linen is the older one you'll meet in MaxText) · Optax (optimizers) · XLA/StableHLO underneath. Orbax and Grain handle checkpointing and data.
+    back: JAX (numerics + transforms) sits on XLA/StableHLO and the TPU. On top of JAX are two sibling libraries — not rungs under each other — Flax NNX (the model/module system; the recommended API, with Linen the older one you'll meet in MaxText) and Optax (optimizers). Orbax and Grain handle checkpointing and data.
 quiz:
   - question: Why does op fusion raise arithmetic intensity?
     choices:
@@ -71,8 +71,11 @@ You write NumPy-like Python. The TPU runs machine code. Here's the bridge:
    <Term id="hbm">HBM</Term> layouts** *before* it will accept any work. Tracing freezes every
    tensor shape so XLA can compute exactly how many bytes of HBM to reserve. (Change an input
    shape and it re-traces and recompiles — the classic "why did my step suddenly get slow?")
-2. **Lower to StableHLO.** The graph becomes **StableHLO**, a portable, hardware-neutral
-   intermediate language.
+2. **Lower to StableHLO.** *Lowering* is compiler-speak for translating a program down one
+   rung toward the hardware (think source → IR → machine code). The trace first becomes a
+   **jaxpr** — JAX's own internal op-list IR — which is then lowered to **StableHLO**, a
+   portable, hardware-neutral IR. (That's the `Python → jaxpr → StableHLO` pipeline you'll
+   step through in the simulation below.)
 3. **Compile with <Term id="xla">XLA</Term> — also on the host.** XLA optimizes the StableHLO —
    most importantly it **<Term id="fusion">fuses</Term>** ops — and emits an executable for your
    target (TPU, GPU, or CPU — the *same* program). This compile *also* runs on the host's CPU and
@@ -89,7 +92,8 @@ A transformer layer is a matmul followed by a chain of cheap elementwise ops —
 **every op re-reads its input from
 <Term id="hbm">HBM</Term> and writes its output back** — a round-trip per op. Fusion
 merges the chain into one kernel: the matmul reads its inputs once, the elementwise
-work rides along in its *epilogue* on-chip, and only the final result is written back.
+work rides along in its *epilogue* (the tail end of the matmul kernel) on-chip, and only
+the final result is written back.
 
 <Callout type="tip">
 **Infra engineers: skip the calculus.** You don't need to know *what* a GELU computes — only
@@ -100,10 +104,13 @@ tensor back. That's almost no compute per byte moved — so on their own they're
 math becomes the bottleneck; fused, the bytes never leave the chip and the stall disappears.
 </Callout>
 
-Same FLOPs, far fewer bytes — which is exactly the
+Same FLOPs, far fewer bytes — exactly the
 <Term id="arithmetic intensity">arithmetic intensity</Term> lever from the systolic-array
-lesson. Toggle it and watch a memory-bound chain cross the v5p ridge into
-compute-bound:
+lesson. (The **ridge** is the roofline crossover point: below it you're *memory-bound* —
+starved on HBM bandwidth; above it *compute-bound* — saturating the MXU.) Walk the compiler
+pipeline, then run the race: the fused kernel makes fewer HBM trips, so it spends less time
+stalled on memory — that shorter wall-clock per step **is** throughput you can measure.
+Watch the chain cross the v5p ridge from memory- to compute-bound:
 
 <Simulation id="xla-fusion-explorer" height={520} />
 
@@ -127,9 +134,12 @@ lessons.
 
 ## Where this sits in the stack
 
-The compiler is the floor. On top of it, the JAX AI stack:
+The compiler is the floor; everything above it is libraries. The vertical layering is
+**your model code → JAX → StableHLO → XLA → TPU**. Flax and Optax aren't *rungs* in that
+stack — they're **sibling libraries on top of JAX** (one builds the model, the other the
+optimizer):
 
-- **JAX** — the numerics and transforms (`jit`, `grad`, `vmap`).
+- **JAX** — the numerics and transforms (`jit`, `grad`, `vmap`) everything else builds on.
 - **Flax NNX** — the model/module system. **NNX is the recommended API** for new code;
   **Linen** is the older one that still powers frameworks like MaxText, so you'll read
   both. (Either way it's **XLA/JAX-first** — *not* "TPUs are for TensorFlow.")
@@ -147,15 +157,17 @@ analysis *knows*. That's the difference this level is built to create.
 
 <Steps>
 <Step title="Watch fusion move the needle">
-In the explorer, flip Unfused → Fused. Read off the HBM round-trips and the arithmetic
-intensity, and say in one sentence why the *bound* flipped from memory to compute.
+In the explorer, walk the compile pipeline (step or auto), then run the race. Read off the
+HBM round-trips and the arithmetic intensity for each side, and say in one sentence why the
+*bound* flipped from memory to compute.
 </Step>
 <Step title="Place the AOT win">
 Explain when you'd reach for `.lower(args).compile()` instead of a plain `jax.jit` call —
 and the one thing it lets you check before you spend a slice.
 </Step>
 <Step title="Name the stack">
-List the four layers from your model code down to the silicon (Flax NNX → Optax → JAX →
-StableHLO → XLA → TPU) and say which one *fuses* your ops.
+List the vertical layers from your model code to the silicon (your model → JAX → StableHLO →
+XLA → TPU), say which one *fuses* your ops, then name the two **sibling** libraries on top of
+JAX (Flax NNX, Optax) — they sit beside each other, not as rungs in that stack.
 </Step>
 </Steps>
