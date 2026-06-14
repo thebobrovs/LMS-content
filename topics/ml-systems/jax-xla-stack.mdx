@@ -50,6 +50,15 @@ black box this level pries open. Between your `model.py` and the
 can explain every millisecond and catch an out-of-memory error *before* training
 starts. The level's mandate: **no black boxes.**
 
+<Callout type="tip">
+**Run it yourself.** This lesson has a companion
+[Colab notebook](https://colab.research.google.com/github/thebobrovs/LMS-content/blob/main/notebooks/jax-xla-stack.ipynb)
+where you trace a layer into StableHLO, watch XLA's cost model report fewer bytes once it
+fuses, reproduce the explorer's `9 → 3` HBM trips, and use AOT lowering to catch an OOM
+*before* spending a slice — in real JAX. It runs on the default **CPU** runtime; the closing
+benchmark also lights up on a free **`v5e-1`** TPU runtime (`Runtime → Change runtime type`).
+</Callout>
+
 ## The compile path
 
 You write NumPy-like Python. The TPU runs machine code. Here's the bridge:
