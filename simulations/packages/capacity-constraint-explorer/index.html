@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Capacity constraint explorer</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Capacity constraint explorer">
+      <p class="hint">A matrix looks like abstract numbers. The most grounded way to read one: it's a <b>list of constraints</b> with the variable names stripped out — the rack-space-vs-budget algebra you already do. Two rules, one valid config: the <b>intersection</b>.</p>
+      <div class="controls" id="controls"></div>
+      <div class="banner" id="banner"></div>
+      <div class="stage">
+        <div class="panel"><div class="ptitle">The two constraints, as lines</div><div id="chart"></div></div>
+        <div class="panel"><div class="ptitle">Same rules, as a matrix</div><div id="info"></div></div>
+      </div>
+      <div class="note" id="note"></div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

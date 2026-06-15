@@ -118,5 +118,20 @@
   },
   "communication-bound": {
     "definition": "When a distributed step spends as long (or longer) syncing gradients across the interconnect as it does computing — so adding more devices stops buying speed. The fixes are overlapping communication with compute, a faster interconnect, or bigger steps, not more devices. The distributed-training analogue of being memory-bound."
+  },
+  "system of equations": {
+    "definition": "Two or more constraints (linear equations) that must all hold at once. Its solution is the set of values that satisfies every one — geometrically, where the constraint lines intersect. Capacity planning is full of these: rack space AND budget AND power, all true together."
+  },
+  "coefficient": {
+    "definition": "The multiplier on a variable in an equation (the 1 and 4 in C + 4G). Strip the variable names off a system and you're left with just the coefficients — and that grid of coefficients is the matrix the computer stores."
+  },
+  "intersection": {
+    "definition": "The point where constraint lines cross — the single combination that satisfies all of them at once, i.e. the solution to the system. No intersection (parallel lines) means no solution; the constraints conflict."
+  },
+  "singular matrix": {
+    "definition": "A coefficient matrix whose constraints have no unique solution — because they conflict (parallel lines, no intersection) or repeat (identical lines, infinite intersections). Its determinant is 0, so it can't be inverted. A property of solving constraint systems (classical ML, optimization), not of neural-net training."
+  },
+  "linear dependence": {
+    "definition": "When one equation (or row of a matrix) is just a rescaling/combination of another — it adds no new information. Dependent constraints are the redundant case of a singular matrix: the lines overlap, so there's no single answer."
   }
 }

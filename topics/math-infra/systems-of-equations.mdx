@@ -1,0 +1,169 @@
+---
+title: Systems of Equations — A Matrix Is Just a List of Rules
+summary: A matrix like [[1,1],[1,4]] looks like abstract numbers, but the most grounded way to read one is as a list of constraints with the variable names stripped out — the rack-space-versus-budget algebra an SRE already does by hand. Translate sentences to equations to a system to a matrix, find the solution where the constraints intersect, and see what a singular (impossible) system looks like. Foundational literacy — not how neural nets use matrices. No ML math.
+tags: [math-infra, fundamentals]
+difficulty: beginner
+estimatedMinutes: 10
+level: 100
+prerequisites: [math-infra/what-is-a-tensor]
+relatedTo: [math-infra/tensor-shapes, math-infra/what-a-neuron-learns]
+videos: []
+flashcards:
+  - front: What does the intersection of two constraint lines represent?
+    back: The single combination (e.g. 20 CPUs, 20 GPUs) where both constraints hold at once — the solution to the system. No intersection (parallel lines) means the rules conflict and there's no valid answer.
+  - front: When you turn a system of equations into a matrix, what's discarded?
+    back: The variable names and the English meaning. Only the coefficients (the multipliers) survive — that grid of coefficients IS the matrix. The computer doesn't care whether the variables were CPUs/GPUs or apples/oranges.
+  - front: What is a singular matrix, in plain terms?
+    back: A constraint system with no unique solution — the rules conflict (parallel lines that never cross) or repeat (identical lines, infinitely many answers). Its determinant is 0, so it can't be inverted. It's about solving systems, not how neural-net training works.
+quiz:
+  - question: When you translate a system of equations into a matrix for a computer, what is kept?
+    choices:
+      - The variable names and their meaning
+      - Only the numeric coefficients (the multipliers)
+      - The units (dollars, nodes)
+    answer: 1
+    explanation: A matrix is the coefficients with everything else stripped off — names, units, and meaning all go. The machine just stores the multipliers and the constants; you supply the interpretation.
+  - question: Two capacity rules plot as parallel lines that never cross. What does that mean?
+    choices:
+      - There are many valid configurations
+      - No valid configuration — the constraints conflict (a singular system)
+      - The budget is set too high
+    answer: 1
+    explanation: Parallel lines share no point, so no single config satisfies both rules. That's a singular system — no unique solution; the determinant is 0 and the matrix can't be inverted.
+  - question: Does training a neural network work by solving systems of equations like this?
+    choices:
+      - Yes — it inverts the weight matrix every step
+      - No — it uses matrices as learned transformations (matmul) and trains by gradient descent
+      - Only for the first layer
+    answer: 1
+    explanation: Neural nets don't solve linear systems or invert matrices; they apply matrices as learned transformations via matmul and learn by gradient descent. Solving systems lives in classical ML and optimization — this lesson is about reading a matrix concretely, not how training runs.
+status: published
+---
+
+## The one-line summary
+
+A matrix like `[[1, 1], [1, 4]]` looks like a wall of abstract numbers. The most grounded way to read
+one: **it's a list of constraints with the variable names stripped out.** And you already write these —
+every time you do capacity planning. "The rack holds 40 nodes." "The budget is $100k." Each sentence is
+a rule; together they pin down exactly one valid configuration. That's all a small matrix is — your
+constraints, stored for a computer.
+
+<Callout type="warn">
+**Scope, up front.** This is **foundational literacy** — how to *read* a matrix as a set of rules. It is
+**not** how neural networks use matrices. Neural nets don't solve systems like this; they use matrices as
+*learned transformations* applied by matmul (see [What a Neuron
+Learns](/topics/math-infra/what-a-neuron-learns)). Solving systems of equations lives in **classical ML
+and optimization**. We'll come back to this at the end — just don't leave thinking training inverts
+matrices. It doesn't.
+</Callout>
+
+## Equations are just lazy English
+
+You do this algebra daily; you just don't write the symbols. "I have **40 slots** in the rack for CPUs
+and GPUs" — you just said:
+
+```
+C + G = 40
+```
+
+`C` is how many CPUs, `G` how many GPUs. The notation isn't math-class abstraction; it's **keystroke
+compression** for a sentence you already think in.
+
+Add the money rule — CPUs cost $1k, GPUs $4k, budget $100k:
+
+```
+1·C + 4·G = 100
+```
+
+## A "system" is overlapping constraints — solved at the intersection
+
+You never plan against one limit. You have rack space **and** a budget, and the question is: *what config
+makes both true at once?* Geometrically, each equation is a **line** — every valid (C, G) combination
+along it — and the answer is where the lines **cross**: the one config that satisfies both.
+
+Drag the rack capacity and the budget and watch the **intersection** — the valid config — slide around.
+Then flip "conflicting constraints" to see what happens when no config can satisfy both:
+
+<Simulation id="capacity-constraint-explorer" height={620} />
+
+<Callout type="tip">
+**Infra bridge.** This is just **constraint solving** — the same thing a scheduler or a bin-packer does
+when it places workloads under several limits at once. The "solution" is the point where every limit is
+simultaneously satisfied; tighten one limit and the feasible point moves.
+</Callout>
+
+## The matrix is the coefficients, with the names stripped off
+
+Here's the translation. Take the system:
+
+```
+1·C + 1·G = 40
+1·C + 4·G = 100
+```
+
+A computer doesn't care that the variables are "CPUs" and "GPUs" — it only needs the **multipliers**. So
+it keeps just those, as a grid:
+
+```
+A = [[1, 1],
+     [1, 4]]      b = [40, 100]
+```
+
+That `A` **is the matrix** — a <Term id="matrix">2-D array</Term> of
+<Term id="coefficient">coefficients</Term>, nothing more. The English ("CPUs," "budget") lived in your
+head; the machine stores the numbers. That's the whole demystification: **a matrix is a table of rules
+with the words removed.**
+
+## Singular: when the rules can't all hold
+
+What if two rules **contradict**? "Max 40 nodes" and "exactly 55 nodes" plot as **parallel lines** — same
+slope, never crossing. There's no config that satisfies both, so the <Term id="system of equations">system</Term> has **no solution**. (The mirror case: two rules that are secretly the *same* — identical lines — have infinitely many solutions.) Either way the matrix is **<Term id="singular matrix">singular</Term>** — there's no single answer. (Solving a system is basically *dividing* both sides by the matrix — called **inverting** it; a singular matrix is the divide-by-zero case, so the operation has no result. That "no result" is what a **determinant of 0** signals.)
+
+<Callout type="tip">
+**Infra bridge.** A singular system is **un-deployable constraints** — "min 50 nodes" and "max 40 nodes"
+in the same plan. No amount of solving finds a config, because none exists. Spotting that the rules
+*conflict* (rather than blaming the solver) is the operator's read.
+</Callout>
+
+## So how does ML actually use matrices?
+
+Not like this. A neural network never solves `Ax = b`, never inverts a matrix, and won't throw a
+"singular matrix" error in normal training. Its matrices are the **weights** — learned numbers that
+*transform* one vector of activations into the next, applied by **matmul** (the
+[neuron lesson](/topics/math-infra/what-a-neuron-learns) is the real story). It learns them by **gradient
+descent**, not by solving.
+
+So why learn this? Because **reading a matrix as "a table of coefficients"** is the same skill either
+way — whether those coefficients are constraints you solve (classical ML, optimization, linear solvers)
+or weights you multiply (deep learning). The grid of numbers stops being mysterious — and you can tell
+which world you're in: you'll meet the *solve-a-system* mode reading optimization-tool output or a
+classical-ML pipeline, while the *transform-with-weights* mode is what runs on the accelerators you
+provision.
+
+## Why this matters
+
+- **A matrix is no longer abstract.** It's a table of rules/numbers with the words stripped — you can read
+  one without flinching, in any context it shows up.
+- **You can spot impossible constraints.** "Singular / conflicting" is the same shape as an
+  over-constrained capacity plan — recognizing it saves you from chasing a solver bug that's really a
+  contradiction in the requirements.
+- **It separates two matrix worlds cleanly:** *solving* systems (classical ML, optimization) vs
+  *transforming* with weights (neural nets). Knowing which one you're looking at is half of not being
+  confused by "the matrix."
+
+## Put it together
+
+<Steps>
+<Step title="Write the rules">
+Take "the rack holds 32 nodes" and "the budget is $80k at $1k/CPU, $4k/GPU," write both as equations, and
+say what their intersection would tell you.
+</Step>
+<Step title="Strip to a matrix">
+Turn that system into a coefficient matrix `A` and a constants vector `b`. Say, in one sentence, what got
+thrown away in the translation.
+</Step>
+<Step title="Break it">
+In the sim, flip on conflicting constraints. Explain what "singular" means in plain capacity-planning
+terms — and then state how this differs from how a neural network uses a matrix.
+</Step>
+</Steps>

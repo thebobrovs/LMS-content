@@ -1,0 +1,9 @@
+{
+  "id": "capacity-constraint-explorer",
+  "title": "Capacity constraints — a matrix is just a list of rules",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-singular", "hint": "Slide the rack capacity and budget and watch the intersection — the one valid CPU/GPU config — slide with them. That intersection is the 'solution' to the system; the matrix on the right is just those constraints with the variable names stripped out. Then flip 'conflicting constraints' on: the lines go parallel, never cross, and the matrix goes singular — two rules that can't both hold, so there's no valid deployment at all." }
+  ]
+}
