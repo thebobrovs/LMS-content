@@ -106,5 +106,17 @@
   },
   "backpropagation": {
     "definition": "How a network finds each weight's gradient: run the forward pass, then send the output error backward layer by layer, giving each neuron a share of the 'blame' scaled by how much it contributed. Operationally it's why training must keep the forward activations in memory — a big reason training's HBM footprint dwarfs inference's."
+  },
+  "all-reduce": {
+    "definition": "The collective that sums each device's gradient and hands every device the total — the dominant network cost of a distributed training step. A ring all-reduce moves roughly 2× the payload per device regardless of how many devices there are, so it scales gracefully; the per-step time is still bytes ÷ interconnect bandwidth."
+  },
+  "collective": {
+    "definition": "A communication operation that all devices in a group run together — all-reduce (sum and share), all-gather, reduce-scatter, broadcast. Training's gradient sync is an all-reduce; collectives are where distributed training spends its network budget."
+  },
+  "interconnect": {
+    "definition": "The high-speed links wiring accelerators together so they can exchange data directly — far faster than the cross-node datacenter network. Gradient all-reduce rides it; when training goes communication-bound, interconnect bandwidth (not device count) is the ceiling."
+  },
+  "communication-bound": {
+    "definition": "When a distributed step spends as long (or longer) syncing gradients across the interconnect as it does computing — so adding more devices stops buying speed. The fixes are overlapping communication with compute, a faster interconnect, or bigger steps, not more devices. The distributed-training analogue of being memory-bound."
   }
 }

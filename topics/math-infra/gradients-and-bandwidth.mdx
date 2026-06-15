@@ -1,0 +1,155 @@
+---
+title: Gradients & Bandwidth — The Communication Wall
+summary: Single-device training has no network cost. Spread it across many accelerators and a new tax appears — every step, each device's gradient (a payload the size of the whole model) must be summed with every other device's before the next step. That all-reduce rides the interconnect, and its time is bytes divided by bandwidth. Past some scale it, not the math, caps your throughput — so adding devices stops helping. Vendor-neutral, no calculus.
+tags: [math-infra, training, performance]
+difficulty: intermediate
+estimatedMinutes: 12
+level: 200
+prerequisites: [math-infra/gradient-descent, math-infra/what-a-neuron-learns]
+relatedTo: [math-infra/precision-and-memory, math-infra/what-is-a-tensor]
+videos: []
+flashcards:
+  - front: What is a gradient, as a network payload?
+    back: A blob the size of the model's parameters (params times bytes-per-number — e.g. a 7B model in bf16 is ~14 GB). Every training step produces one per device, and they must all be reconciled before the next step. It's a recurring, predictable transfer you budget for, not a one-off.
+  - front: What is all-reduce, and where does it run?
+    back: The collective that sums every device's gradient and hands each device the total — the dominant network cost of a training step. It rides the fast interconnect between accelerators (not the slow cross-node network). A ring all-reduce moves ~2x the payload per device, roughly independent of device count.
+  - front: How do you tell compute-bound from communication-bound?
+    back: Compare the gradient sync time (bytes divided by interconnect bandwidth) to the per-step compute time. If sync is the smaller share, you're compute-bound (devices well used); once sync rivals or exceeds compute, you're communication-bound — adding devices stops buying speed.
+  - front: A run goes communication-bound. What are the levers?
+    back: Overlap the gradient sync with the backward compute (hide it), move to a faster interconnect, or take bigger steps (more compute per sync). NOT more devices — that shrinks per-device compute while the sync stays flat, making it worse.
+quiz:
+  - question: In distributed training, what reconciles each device's gradient before the next step?
+    choices:
+      - A broadcast from device 0
+      - An all-reduce — it sums every device's gradient and gives each the total
+      - Nothing; each device trains independently
+    answer: 1
+    explanation: An all-reduce sums the gradients across all devices and returns the total to each, so every device steps with the same combined gradient. It's the dominant network cost of a training step and rides the interconnect.
+  - question: A team doubles the device count and the run gets *slower* per useful step. Most likely cause?
+    choices:
+      - The model got bigger
+      - It went communication-bound — per-device compute shrank while the all-reduce stayed flat, so sync now dominates
+      - The learning rate is too high
+    answer: 1
+    explanation: With a fixed global batch, adding devices cuts per-device compute but the all-reduce time barely changes — so its share rises until it dominates. Past that point more devices buy little or nothing; you've hit the communication wall.
+  - question: Your training is communication-bound. Which fix actually helps?
+    choices:
+      - Add more devices
+      - Overlap the gradient sync with compute, or move to a faster interconnect
+      - Lower the precision of the gradients only on device 0
+    answer: 1
+    explanation: Communication-bound means the sync, not the math, is the bottleneck — so you hide the sync behind compute, widen the interconnect, or do more compute per sync. Adding devices makes it worse by shrinking compute while the sync stays flat.
+status: published
+---
+
+## The one-line summary
+
+On one accelerator, training has **no network cost**. Spread it across many and a tax appears that
+dominates at scale: **every step, each device computes a <Term id="gradient">gradient</Term> the size
+of the whole model, and they must all be summed together before the next step.** That sync is an
+**<Term id="all-reduce">all-reduce</Term>**, it rides the **<Term id="interconnect">interconnect</Term>**
+between accelerators, and its time is simply **bytes ÷ bandwidth**. Get a feel for when that sync
+overtakes the math and you'll know the thing that trips up every first cluster: past a point, **adding
+devices stops making training faster.**
+
+<Callout type="tip">
+**Infra bridge.** You already budget for recurring, fixed-size transfers — a replication stream, a
+log shipment every interval. A gradient is exactly that: a blob the size of the model, moved across the
+fabric *every single step*. The only question is whether the fabric can move it faster than the chips
+can produce the next one.
+</Callout>
+
+## A gradient is a payload, not a derivative
+
+Forget the calculus. Operationally, a gradient is just **a second copy of the model** — one number per
+parameter, saying which way to nudge that weight. A 7B-parameter model in `bf16` produces a **~14 GB**
+gradient. Every step. On every device. (That's the same byte math as [precision &
+memory](/topics/math-infra/precision-and-memory): params × bytes-per-number.)
+
+The catch of multi-device training: each device sees only its slice of the data, so it computes a
+*different* gradient. Before anyone can take a step, those gradients must be **averaged into one** — so
+every device stays on the same model. That reconciliation is the network cost.
+
+## All-reduce: the sync, and bytes-on-the-wire is the cost
+
+The collective that does it is **all-reduce**: sum every device's gradient, hand each device the
+total. It rides the fast interconnect (not the slow cross-node network), and a **ring** all-reduce is
+clever — each device passes its payload around the loop in small segments, and as you add devices each
+segment shrinks proportionally. So the data each device moves stays roughly **2× the payload**
+*regardless of how many devices there are* — the cost doesn't blow up as you scale. But the time for
+that pass is still just **bytes ÷ bandwidth**.
+
+So the whole step is two phases: **compute** the gradients (the backward pass), then **all-reduce**
+them. Drive the two against each other below — set the model size, the device count, and the
+interconnect bandwidth, and watch where the sync overtakes the compute:
+
+<Simulation id="gradient-sync-explorer" height={760} />
+
+<Callout type="tip">
+**Infra bridge.** All-reduce is a cluster-wide **reduce/aggregate** — like rolling per-shard counters
+into a global total every tick. The bottleneck isn't the arithmetic; it's the interconnect moving the
+partial sums around. That's why it runs on the fast fabric and why its cost is measured in *bandwidth*,
+not FLOPs.
+</Callout>
+
+## When adding devices stops helping — the communication wall
+
+Here's the trap. Hold the **global batch** fixed — the total examples processed per step across all
+devices — and add devices: each device now does **less compute** (it owns a smaller slice of that
+batch), so per-device compute time *shrinks*. But the all-reduce moves
+the same model-sized payload — its time stays **flat**. Shrinking one phase while the other holds means
+the sync's *share* of every step keeps rising, until it **dominates**. At that point you're
+**<Term id="communication-bound">communication-bound</Term>**: doubling the devices barely moves the
+needle, and the speedup curve in the sim peels away from the ideal line and flattens.
+
+<Callout type="tip">
+**Infra bridge.** This is **Amdahl's law / the serial-section problem** you know from any parallel
+system: once the un-parallelizable part (here, the sync) dominates, more workers stop helping and can
+even hurt (coordination overhead). "We added a rack and throughput barely moved" is this curve, live.
+</Callout>
+
+## The levers (and the one that backfires)
+
+When a run is communication-bound, three things actually help — and one tempting move makes it worse:
+
+- **Overlap comm with compute.** The backward pass produces gradients **one layer at a time** (last
+  layer first), so each layer's gradient is ready to all-reduce the moment that layer finishes — you can
+  start syncing the early ones while later ones are still computing, hiding the sync *behind* compute
+  instead of adding to it. Flip the **overlap** toggle in the sim and watch the step time drop; it's
+  automatic in most frameworks.
+- **A faster interconnect.** Sync time is bytes ÷ bandwidth, so more bandwidth (a fatter fabric, or
+  keeping the job on the fast in-node interconnect instead of the slow cross-node network) directly
+  cuts it.
+- **Bigger steps** (more compute per sync) — a larger per-device batch raises the compute side, so the
+  fixed sync becomes a smaller share of each step.
+- **✗ More devices** — the reflex, and the wrong one once you're comm-bound: it shrinks compute while
+  the sync stays flat, *raising* the sync's share.
+
+## Why this matters
+
+- **Provisioning.** "Throw more chips at it" has a ceiling, and this is where it is. Past the wall you're
+  paying for devices that mostly wait on the network — the scaling-efficiency number in the sim is the
+  one to watch.
+- **The interconnect is a first-class resource.** Training cares about *bandwidth between* accelerators,
+  not just FLOPs and HBM — which is why the fast in-node fabric and the network topology (the next topic)
+  matter so much, and why jobs are packed to stay on it.
+- **Reading a stalled scale-up.** "We doubled the pod and throughput barely moved" is no longer a mystery
+  — it's the comm wall, and the fix is overlap or bandwidth, not more devices.
+
+## Put it together
+
+<Steps>
+<Step title="Find the wall">
+In the sim, fix the model and bandwidth and slide the device count up. Name the device count where it
+flips from compute-bound to communication-bound, and say what happened to per-device compute vs the
+all-reduce to cause it.
+</Step>
+<Step title="Hide the sync">
+At a communication-bound setting, turn on **overlap**. Explain, in one sentence, why the step time drops
+even though the all-reduce still has the same bytes to move.
+</Step>
+<Step title="Pick the right lever">
+A run is comm-bound and someone proposes adding more devices. Say why that backfires and which lever
+you'd reach for instead.
+</Step>
+</Steps>
