@@ -6,7 +6,7 @@ difficulty: beginner
 estimatedMinutes: 11
 level: 100
 prerequisites: []
-relatedTo: [ml-systems/tpu-chip-systolic-array, ml-systems/why-tpus]
+relatedTo: [math-infra/tensor-shapes, math-infra/gradient-descent]
 videos: []
 flashcards:
   - front: A float = range + precision. Which bits do which?
@@ -16,7 +16,7 @@ flashcards:
   - front: Why does lower precision make the chip faster — not just smaller?
     back: Arithmetic intensity = FLOPs ÷ bytes moved. Same math, fewer bytes → higher intensity → the matrix unit isn't waiting on memory. Halving the byte width roughly doubles intensity, pushing a workload from memory-bound toward compute-bound.
   - front: What is fp4 (E2M1) and the catch?
-    back: A 4-bit float — 1 sign, 2 exponent, 1 mantissa — native on TPU 8t. A quarter of bf16's bytes (≈2× throughput), but a tiny ~0.5–6 range and 1 mantissa bit, so values must be scaled into range first. The throughput bet for inference and parts of training.
+    back: A 4-bit float — 1 sign, 2 exponent, 1 mantissa. A quarter of bf16's bytes (≈2× throughput), but a tiny ~0.5–6 range and 1 mantissa bit, so values must be scaled into range first. The throughput bet for inference and parts of training.
 quiz:
   - question: Which 16-bit float overflows to infinity past ~65,504, and why?
     choices:
@@ -32,13 +32,13 @@ quiz:
       - It's unchanged — precision doesn't affect intensity
     answer: 1
     explanation: Arithmetic intensity is FLOPs per byte moved. Same FLOPs over half the bytes ≈ double the intensity, moving the workload up toward the roofline ridge and away from being memory-bound.
-  - question: A workload sits at 40 FLOP/byte on a chip whose roofline ridge is 165 FLOP/byte (e.g. a v5p). What's the bottleneck?
+  - question: A workload sits at 40 FLOP/byte on hardware whose roofline ridge is 165 FLOP/byte. What's the bottleneck?
     choices:
       - Compute — the matrix unit is saturated
       - Memory bandwidth — it's below the ridge, starved waiting on HBM
       - Neither — 40 is above the ridge
     answer: 1
-    explanation: Below the ridge (40 < 165) the chip is memory-bound — it finishes the math faster than memory can feed it, so the expensive matrix unit idles. Raising intensity (lower precision, bigger batches) moves it up toward the ridge.
+    explanation: Below the ridge (40 < 165) the device is memory-bound — it finishes the math faster than memory can feed it, so the expensive matrix unit idles. Raising intensity (lower precision, bigger batches) moves it up toward the ridge.
 status: published
 ---
 
@@ -105,8 +105,8 @@ Smaller isn't just cheaper to store — it's the lever that keeps the chip busy.
 can do far more math per second than <Term id="hbm">HBM</Term> can deliver bytes, so the real
 question is **<Term id="arithmetic intensity">arithmetic intensity</Term> = FLOPs
 (floating-point math ops) ÷ bytes moved.** Halve the bytes per number and you roughly *double* the intensity for the same math —
-pushing the workload from **memory-bound** (the <Term id="mxu">MXU</Term> idling, waiting on the
-bus) toward **compute-bound** (the MXU saturated, which is what you paid for).
+pushing the workload from **memory-bound** (the <Term id="mxu">matrix unit</Term> idling, waiting on the
+bus) toward **compute-bound** (the matrix unit saturated, which is what you paid for).
 
 That's the <Term id="roofline">roofline</Term>: below the ridge you're starved on bandwidth,
 above it you're saturating compute. Lower precision is one of the main levers that gets you over
@@ -123,12 +123,12 @@ between the two — exactly the kind of saturation trade you already tune.
 ## fp4 and where this is going
 
 The trend only goes one way: fewer bytes. **<Term id="fp4">fp4</Term>** (the OCP `E2M1` variant —
-1 sign, 2 exponent, 1 mantissa) is native on the **8t** (the 8th-generation training TPU) and runs
-at ~¼ bf16's bytes, roughly doubling throughput. The catch the sim makes obvious: with one mantissa bit and a ~0.5–6 range, fp4 rounds
+1 sign, 2 exponent, 1 mantissa) is arriving on the newest accelerators and runs at ~¼ bf16's bytes,
+roughly doubling throughput. The catch the sim makes obvious: with one mantissa bit and a ~0.5–6 range, fp4 rounds
 or overflows almost everything *raw* — so in practice values are **scaled into range** first. It's
 a throughput bet you take where you can afford the resolution loss (inference, parts of training).
 
-One detail that ties it together: the MXU multiplies in low precision but **accumulates partial
+One detail that ties it together: the matrix unit multiplies in low precision but **accumulates partial
 sums in fp32** — a matmul builds each output by adding up a long string of products, and keeping
 that running sum in fp32 means the rounding doesn't pile up. You get the bandwidth win on the
 inputs without the running sum drifting.

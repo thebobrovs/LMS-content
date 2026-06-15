@@ -1,0 +1,9 @@
+{
+  "id": "gradient-sync-explorer",
+  "title": "Gradient sync explorer — the communication wall",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-comm-bound", "hint": "Keep the model and bandwidth fixed and slide the device count up. Per-device compute keeps shrinking (each device does less of the batch) but the all-reduce barely changes — so the red comm bar overtakes the green compute bar and the run goes communication-bound: adding devices stops buying speed. Now flip Overlap on and watch the comm hide behind compute. Interconnect bandwidth and overlap are the levers, not device count." }
+  ]
+}

@@ -4,6 +4,6 @@
   "version": "1.0.0",
   "props": {},
   "checkpoints": [
-    { "id": "observe-roofline", "hint": "Raise the batch size until the workload crosses the ridge into compute-bound — then shrink a dimension off the MXU tile and watch padding waste spike." }
+    { "id": "observe-roofline", "hint": "Raise the batch size until the workload crosses the ridge into compute-bound — then shrink a dimension off the matrix-unit tile and watch padding waste spike." }
   ]
 }

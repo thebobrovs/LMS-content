@@ -105,7 +105,7 @@ function render() {
         fp16fail
           ? `<span class="bad">fp16 can't hold this value</span> — its 5-bit exponent is too narrow. <b>bf16 still works</b>, because it kept fp32's 8-bit exponent. That range is why ML picked bf16.`
           : `bf16 represents this within <b>±0.39%</b> — coarser than fp16, but ML training averages that out. What it can't lose is <b>range</b>: gradients span ~1e-7 to activations ~1e5, and only an 8-bit exponent covers both.`
-      } <b>fp4 (E2M1)</b> has just 1 mantissa bit and a ~0.5–6 range, so it overflows or rounds almost everything raw — in practice values are <b>scaled into range</b> first. At ¼ the bytes of bf16, that's the throughput bet. The MXU multiplies in low precision but <b>accumulates in fp32</b>, so rounding doesn't pile up.
+      } <b>fp4 (E2M1)</b> has just 1 mantissa bit and a ~0.5–6 range, so it overflows or rounds almost everything raw — in practice values are <b>scaled into range</b> first. At ¼ the bytes of bf16, that's the throughput bet. The matrix unit multiplies in low precision but <b>accumulates in fp32</b>, so rounding doesn't pile up.
     </div>`;
 
   app.querySelector("#L").addEventListener("input", (e) => { L = +e.target.value; render(); });

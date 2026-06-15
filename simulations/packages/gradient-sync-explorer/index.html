@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gradient sync explorer</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Gradient sync explorer">
+      <p class="hint">Train on many accelerators and you pay a tax single-device training doesn't: every step, each device's <b>gradient</b> (a payload the size of the whole model) must be <b>all-reduced</b> — summed across every device — before the next step. That sync rides the <b>device interconnect</b> (the fabric wiring the accelerators together), and its time is <b>bytes ÷ bandwidth</b>. Scale up and watch it overtake the compute.</p>
+      <div class="controls" id="controls"></div>
+      <div class="cards" id="cards"></div>
+      <div class="panel">
+        <div class="ptitle">One training step, per device</div>
+        <div id="bars"></div>
+        <div class="note" id="note"></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">Speedup vs devices — does adding devices still help?</div>
+        <div id="chart"></div>
+      </div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

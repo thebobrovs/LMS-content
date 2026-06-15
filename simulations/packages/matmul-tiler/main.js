@@ -1,11 +1,11 @@
-// createSim is a global from sim-sdk.js (classic script). A matmul [M,K]·[K,N] → [M,N] on an
-// MXU that works in fixed 128×128 (or 256×256) tiles. Any dimension that isn't a multiple of
+// createSim is a global from sim-sdk.js (classic script). A matmul [M,K]·[K,N] → [M,N] on a
+// matrix unit that works in fixed 128×128 (or 256×256) tiles. Any dimension that isn't a multiple of
 // the tile is zero-padded up to the next one — wasting compute (FLOPs on zeros) and memory
 // (storing zeros), the classic surprise-OOM. Drag M/K/N and watch the overhang. Deterministic,
 // theme-aware, reduced-motion safe, no CDNs.
 
 let REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let T = 128;                              // MXU tile
+let T = 128;                              // matrix-unit tile size
 let M = 512, K = 512, N = 512;           // matmul dims
 let observed = false;
 

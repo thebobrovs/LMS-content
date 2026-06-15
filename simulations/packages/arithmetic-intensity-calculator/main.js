@@ -1,14 +1,14 @@
 // createSim is a global from sim-sdk.js (classic script). A matmul A[B×F]·W[F×F]
-// in bf16. Teaches two things: (1) arithmetic intensity vs the v5p roofline ridge
-// (~165 FLOP/byte) — raise the batch to go compute-bound; (2) the Padding Trap —
-// dims off the MXU tile (128 / 256) get zero-padded, wasting compute + memory.
+// in bf16. Teaches two things: (1) arithmetic intensity vs a representative roofline
+// ridge (~165 FLOP/byte) — raise the batch to go compute-bound; (2) the Padding Trap —
+// dims off the matrix-unit tile (128 / 256) get zero-padded, wasting compute + memory.
 // Deterministic, theme-aware, no CDNs.
 const app = document.getElementById("app");
 
-const RIDGE = 165; // v5p ridge: ~459 bf16 TFLOP/s ÷ ~2.8 TB/s
+const RIDGE = 165; // representative ridge: ~peak bf16 TFLOP/s ÷ HBM bandwidth (TB/s)
 let B = 256;       // batch
 let F = 4096;      // feature / contraction dim
-let tile = 128;    // MXU tile: 128 (v5p) or 256 (v6e/v7)
+let tile = 128;    // matrix-unit tile: 128 or 256, hardware-dependent
 let observed = false;
 
 function reportSize() { requestAnimationFrame(() => sim.resize(document.body.scrollHeight + 8)); }
@@ -21,7 +21,7 @@ const ceilTo = (x, m) => Math.ceil(x / m) * m;
 function metrics() {
   const intensity = (B * F) / (B + F);           // FLOP/byte for A·W in bf16
   const Bpad = ceilTo(B, 8);                      // batch → sublane multiple of 8
-  const Fpad = ceilTo(F, tile);                   // feature → MXU tile (128/256)
+  const Fpad = ceilTo(F, tile);                   // feature → matrix-unit tile (128/256)
   const util = (B * F) / (Bpad * Fpad);           // fraction of the padded tile that's real
   const waste = 1 - util;
   const bound = intensity >= RIDGE ? "compute" : "memory";
@@ -42,9 +42,9 @@ function render() {
     <div class="controls">
       <label>Batch <b>${B}</b><input id="b" type="range" min="8" max="1024" step="1" value="${B}"></label>
       <label>Feature <b>${F}</b><input id="f" type="range" min="128" max="8192" step="1" value="${F}"></label>
-      <span class="tiles">MXU tile
-        <button class="t ${tile === 128 ? "on" : ""}" data-t="128">128 · v5p</button>
-        <button class="t ${tile === 256 ? "on" : ""}" data-t="256">256 · v6e/v7</button>
+      <span class="tiles">matrix-unit tile
+        <button class="t ${tile === 128 ? "on" : ""}" data-t="128">128</button>
+        <button class="t ${tile === 256 ? "on" : ""}" data-t="256">256</button>
       </span>
     </div>
 
@@ -59,7 +59,7 @@ function render() {
     </div>
 
     <div class="pad">
-      <div class="pad-grid" title="one MXU tile: useful vs padded">
+      <div class="pad-grid" title="one matrix-unit tile: useful vs padded">
         <div class="useful" style="width:${(B / m.Bpad) * 100}%;height:${(F / m.Fpad) * 100}%"></div>
       </div>
       <div class="pad-num">
@@ -72,7 +72,7 @@ function render() {
     <div class="readout" role="status">
       Arithmetic intensity <b>${m.intensity.toFixed(0)} FLOP/byte</b> →
       <b class="${m.bound === "compute" ? "ok" : "warn"}">${m.bound}-bound</b>${
-        m.bound === "memory" ? ` (below the ~${RIDGE} ridge — the MXU starves)` : ` (above the ridge — the MXU runs near peak)`
+        m.bound === "memory" ? ` (below the ~${RIDGE} ridge — the matrix unit starves)` : ` (above the ridge — the matrix unit runs near peak)`
       }.${
         m.waste > 0.3 ? ` <span class="warn">${(m.waste * 100).toFixed(0)}% of every tile is padded zeros — wasted compute + memory, and a path to a "mysterious" OOM.</span>` : ""
       }

@@ -6,7 +6,7 @@ difficulty: beginner
 estimatedMinutes: 12
 level: 100
 prerequisites: []
-relatedTo: [math-infra/tensor-shapes, ml-systems/tpu-chip-systolic-array]
+relatedTo: [math-infra/tensor-shapes, math-infra/precision-and-memory]
 videos: []
 flashcards:
   - front: What is a tensor, in one line?
@@ -155,8 +155,9 @@ Make it concrete at model scale — every dimension `4096` wide, in `bf16` (2 by
 | 2 | `(4096, 4096)` | 16 M | 32 MiB |
 | 3 | `(4096, 4096, 4096)` | 69 B | **128 GiB** |
 
-One extra dimension took the same kind of data from **32 MiB to 128 GiB** — past a single chip's
-**<Term id="hbm">HBM</Term>** (~95 GB). Nothing changed but the rank.
+One extra dimension took the same kind of data from **32 MiB to 128 GiB** — past a single
+accelerator's **<Term id="hbm">HBM</Term>** (today's high-end parts hold ~80–140 GB). Nothing changed
+but the rank.
 
 <Callout type="tip">
 **Infra bridge.** This is why "just add a dimension" terrifies the people sizing the cluster.

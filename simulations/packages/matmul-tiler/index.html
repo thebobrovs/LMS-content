@@ -9,10 +9,10 @@
   <body>
     <main id="app" aria-label="Matmul tiler — the padding trap">
       <div class="header-bar">
-        <p class="hint">The MXU works in fixed <b>128×128 tiles</b>. Any matmul dimension that isn't a multiple of the tile gets <b>silently zero-padded</b> up to the next one — you pay compute and memory for the overhang. Drag the dimensions and watch the waste.</p>
-        <div class="seg" role="group" aria-label="MXU tile size">
-          <button type="button" class="seg-btn on" data-tile="128">128 tile (v5p)</button>
-          <button type="button" class="seg-btn" data-tile="256">256 tile (v6e/v7)</button>
+        <p class="hint">A <b>matrix unit</b> works in fixed-size tiles — commonly <b>128×128</b>. Any matmul dimension that isn't a multiple of the tile gets <b>silently zero-padded</b> up to the next one — you pay compute and memory for the overhang. Drag the dimensions and watch the waste.</p>
+        <div class="seg" role="group" aria-label="matrix-unit tile size">
+          <button type="button" class="seg-btn on" data-tile="128">128 tile</button>
+          <button type="button" class="seg-btn" data-tile="256">256 tile</button>
         </div>
       </div>
 

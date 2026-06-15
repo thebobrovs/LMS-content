@@ -2,14 +2,14 @@
 // We draw a toy tensor with N=3 per dimension as a cluster of isometric cubes: rank 0 = 1 block,
 // rank 1 = 3, rank 2 = 9, rank 3 = 27 — each dimension MULTIPLIES the count. The right panel scales
 // the same idea to a realistic model dimension (4096, bf16): 2 B → 8 KiB → 32 MiB → 128 GiB, where
-// the rank-3 tensor blows past one chip's HBM. That multiplicative blow-up is the whole point.
+// the rank-3 tensor blows past one accelerator's HBM. That multiplicative blow-up is the whole point.
 // Deterministic, theme + reduced-motion aware, no CDNs.
 
 const $ = (id) => document.getElementById(id);
 const N = 3;              // toy size per dimension (gives 1, 3, 9, 27)
 const MODEL = 4096;       // realistic model dimension for the memory bill
 const BYTES = 2;          // bf16
-const HBM_GB = 95;        // ~ one TPU v5p chip's HBM
+const HBM_GB = 100;       // ~ one high-end accelerator's HBM (round, vendor-neutral)
 let rank = 0, observed = false;
 
 const NAMES = ["scalar", "vector", "matrix", "3-D tensor"];
