@@ -77,6 +77,12 @@ like a feedback controller or a hill-climbing search. You don't jump to the answ
 to it over many cycles. And like any control loop, it has a *gain* you can mis-set.
 </Callout>
 
+Walk the whole loop once on a simple line fit — guess it by hand (the forward pass), hover a point
+to see its error (the loss), then let the optimizer train it down to a fit over epochs and predict a
+new value (inference):
+
+<Simulation id="training-loop-explorer" height={800} />
+
 ## The learning rate is the gain — and it has a stability band
 
 The **<Term id="learning rate">learning rate</Term>** sets how big each step is. It behaves

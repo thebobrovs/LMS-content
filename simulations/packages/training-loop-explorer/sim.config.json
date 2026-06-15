@@ -1,0 +1,9 @@
+{
+  "id": "training-loop-explorer",
+  "title": "Training loop explorer — from data to inference",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-epochs", "hint": "Walk the whole loop: guess a line by hand (the forward pass), hover a point to see its error (the loss), then hit Auto Train to watch the optimizer tilt the line and drive the loss curve down over epochs — finally predict y-hat for a new input. That guess -> measure -> update -> repeat cycle, run thousands of times, IS training." }
+  ]
+}
