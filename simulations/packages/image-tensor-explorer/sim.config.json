@@ -1,0 +1,9 @@
+{
+  "id": "image-tensor-explorer",
+  "title": "Image tensor explorer — from a pixel to a video",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-image-ranks", "hint": "Walk rank 0 -> 4 on a real image: one pixel is a scalar, a row is a vector, a grayscale photo is a matrix, color adds a 3rd 'channels' dimension (R, G, B per pixel), and a video adds a 4th (time). Watch the array on the right grow the same way — each new dimension multiplies the numbers the chip stores." }
+  ]
+}

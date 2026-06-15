@@ -125,6 +125,11 @@ don't get a new picture, you get a **third dimension** — a new axis called **c
 but **three values deep** — how much red, green, and blue sit at each pixel. That channels axis is
 exactly the jump from a matrix to a rank-3 tensor. Stack a batch of photos (or a video's frames) and you've added a fourth.
 
+Walk an image up the ranks yourself — one pixel, a row, a grayscale grid, then color (the **+RGB
+channels** dimension), then a stack of frames — and watch the stored array grow right alongside it:
+
+<Simulation id="image-tensor-explorer" height={840} />
+
 <Callout type="tip">
 **Infra bridge.** That 4K screenshot you just `scp`'d is a rank-3 tensor — `3840 × 2160 × 3` bytes ≈
 **24 MB** uncompressed. The file size *is* the shape times the bytes-per-value. Going grayscale →
