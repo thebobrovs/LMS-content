@@ -133,5 +133,26 @@
   },
   "linear dependence": {
     "definition": "When one equation (or row of a matrix) is just a rescaling/combination of another — it adds no new information. Dependent constraints are the redundant case of a singular matrix: the lines overlap, so there's no single answer."
+  },
+  "topology": {
+    "definition": "The shape of a cluster's interconnect as a graph — which devices link to which. Common shapes: ring, mesh, torus (a wrapped mesh), and fat-tree/Clos (the spine-leaf fabric). The topology, not just raw link speed, sets how fast collectives like all-reduce run."
+  },
+  "network diameter": {
+    "definition": "The worst-case shortest path between any two nodes — the most hops a message ever has to make. Your tail-latency bound in hops. Closing a line into a ring (wrap-around) roughly halves it."
+  },
+  "bisection bandwidth": {
+    "definition": "The links you must cut to split the network into two equal halves, times the per-link bandwidth — the cross-section throughput limit. It's the bottleneck a large all-reduce or all-to-all hits; a squarer grid (or a fat-tree) raises it."
+  },
+  "hop count": {
+    "definition": "How many links a message traverses between two nodes. Average hop count drives typical latency; the maximum over all pairs is the network diameter."
+  },
+  "torus": {
+    "definition": "A mesh whose rows and columns wrap around into rings, so every node has neighbors on all sides with no edge. The wrap-around shortens the worst-case path (diameter) and doubles the bisection versus a plain mesh of the same size."
+  },
+  "mesh": {
+    "definition": "A grid of nodes linked to their immediate neighbors, with no wrap-around — so edge and corner nodes have fewer links and the farthest corners are many hops apart. Wrap it into a torus to cut the diameter."
+  },
+  "fat-tree": {
+    "definition": "A tree-shaped switched fabric (a Clos / spine-leaf network) engineered for full, non-blocking bisection — any-to-any at line rate — at the cost of extra switches and links. The topology most large GPU/datacenter clusters use; the throughput-over-cost end of the spectrum versus a torus."
   }
 }

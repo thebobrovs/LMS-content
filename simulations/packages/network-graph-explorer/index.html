@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Network graph explorer</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Network graph explorer">
+      <p class="hint">A cluster's interconnect is just a <b>graph</b> — devices are nodes, links are edges. Two graph metrics decide how fast a collective (like the all-reduce) runs on it: <b>diameter</b> (worst-case hops = latency) and <b>bisection</b> (links you'd cut to split it in half = cross-section throughput). Reshape the grid and toggle wrap-around to move them.</p>
+      <div class="controls" id="controls"></div>
+      <div class="cards" id="cards"></div>
+      <div class="panel"><div id="graph"></div></div>
+      <div class="note" id="note"></div>
+    </main>
+    <script src="./sim-sdk.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

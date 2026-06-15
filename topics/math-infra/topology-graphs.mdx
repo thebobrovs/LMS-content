@@ -1,0 +1,139 @@
+---
+title: Topology Graphs — Why the Cluster's Shape Sets the Speed
+summary: The interconnect that the all-reduce rides is just a graph — devices are nodes, links are edges. Two graph metrics decide how fast a collective runs on it — network diameter (worst-case hops, your latency bound) and bisection bandwidth (the links you'd cut to split it in half, your cross-section throughput). Reshape the graph and those numbers move — wrap a mesh into a torus and the diameter halves; square up the grid and the bisection rises. Same device count, faster network. Vendor-neutral, no proofs.
+tags: [math-infra, networking, performance]
+difficulty: intermediate
+estimatedMinutes: 12
+level: 200
+prerequisites: [math-infra/gradients-and-bandwidth]
+relatedTo: [math-infra/gradients-and-bandwidth]
+videos: []
+flashcards:
+  - front: A cluster interconnect is a graph. What are the nodes and edges, and what are the common shapes?
+    back: Nodes are devices (accelerators/switches), edges are the links between them. Common shapes as graphs — ring, mesh, torus (a wrapped mesh), and fat-tree / Clos (the spine-leaf fabric). The shape — not just raw link speed — sets collective performance.
+  - front: What is network diameter, in operator terms?
+    back: The worst-case shortest path between any two nodes — the most hops a message ever makes. It's your tail-latency bound in hops. Closing a line into a ring (wrap-around) roughly halves it.
+  - front: What is bisection bandwidth, and what does it limit?
+    back: The links you must cut to split the network into two equal halves, times per-link bandwidth — the cross-section throughput. It's the bottleneck a large all-reduce / all-to-all hits. A squarer grid (or a fat-tree) raises it.
+  - front: Two clusters have the same device count but different speeds. How?
+    back: Different topology. Different shapes give different diameter and bisection — a squarer, wrapped grid has lower diameter and higher bisection than a long thin mesh of the same size, so collectives finish faster on it.
+quiz:
+  - question: What does closing a line of nodes into a ring (wrap-around) do to the network diameter?
+    choices:
+      - Doubles it
+      - Roughly halves it — every node gets a second path around
+      - Leaves it unchanged
+    answer: 1
+    explanation: A line's farthest nodes are end-to-end; a ring gives a second path the other way around, so the worst-case hop count drops to about half. Same idea scaled up turns a mesh into a torus.
+  - question: A large all-reduce is slow and the links between the two halves of the cluster are saturated. Which metric is the bottleneck?
+    choices:
+      - Network diameter
+      - Bisection bandwidth — the cross-section throughput between the halves
+      - The per-node compute
+    answer: 1
+    explanation: When traffic must cross the middle of the network, the limit is the bisection — the total bandwidth of the links spanning the two halves. Diameter is about latency (hops); bisection is about throughput across the cut.
+  - question: Why does the cluster's topology matter for training and not just raw link speed?
+    choices:
+      - It doesn't — only per-link GB/s matters
+      - Because the all-reduce rides the graph, so diameter and bisection cap how fast the gradient sync completes
+      - Because topology changes the model's accuracy
+    answer: 1
+    explanation: The gradient all-reduce from the previous lesson runs across this graph, so its speed is bounded by the graph's metrics. That's why cluster shape and job placement (keeping a job on a well-connected sub-graph) are real performance levers.
+status: published
+---
+
+## The one-line summary
+
+The previous lesson left the gradient all-reduce riding "the interconnect" — but what *is* that?
+**Just a graph.** Devices are **nodes**, links are **edges**, and the speed of a collective on it comes
+down to two graph numbers you already reason about under other names: the **<Term id="network diameter">diameter</Term>** (the worst-case hop count — your latency bound) and the **<Term id="bisection bandwidth">bisection</Term>** (the links you'd cut to split it in half — your cross-section throughput).
+Change the *shape* of the graph and those numbers move — which is why two clusters with the **same number
+of devices** can train at very different speeds.
+
+<Callout type="tip">
+**Infra bridge.** You've drawn this graph a hundred times. A **spine-leaf / Clos** fabric is a graph; so
+is a **ring**, a **mesh**, a **<Term id="torus">torus</Term>**. The two questions you ask of any of them
+— *what's the farthest hop?* (tail latency) and *what's the throughput if traffic crosses the middle?*
+(spine oversubscription) — are exactly diameter and bisection. This topic just hands you the vocabulary
+map.
+</Callout>
+
+## Two metrics that cap a collective
+
+- **<Term id="network diameter">Network diameter</Term>** — the longest of all the shortest paths: the
+  most <Term id="hop count">hops</Term> any message ever needs. It bounds worst-case **latency**.
+- **<Term id="bisection bandwidth">Bisection bandwidth</Term>** — slice the network into two equal halves;
+  the number of links you must cut, times their bandwidth, is the **throughput across the middle**. It
+  bounds **all-reduce / all-to-all** (the pattern where every node exchanges with every other) traffic,
+  which by definition crosses the whole network.
+
+Reshape the grid below and toggle wrap-around. Watch the amber **diameter path** (worst-case hops) and
+the red **bisection cut** (links to split it in half) — and the numbers move with the shape:
+
+<Simulation id="network-graph-explorer" height={560} />
+
+## Shape is the lever — same devices, faster network
+
+Two moves, both visible in the sim, change the metrics without adding a single device:
+
+- **Wrap-around (mesh → torus).** Closing each row and column into a ring gives every node a second way
+  around, so the worst-case path — the **diameter** — roughly **halves**. (It also doubles the bisection,
+  since now there are two cut points across each ring, not one.)
+- **Square up the grid.** A long, thin `4×16` mesh has a tiny bisection (few links span its narrow waist)
+  and a big diameter (far corners). A square `8×8` of the same 64 nodes has a **wider bisection** and a
+  **shorter diameter**. Shape, for free.
+
+<Callout type="tip">
+**Infra bridge.** This is the same instinct as **not stringing your fabric out in a long chain**: keep it
+compact and richly cross-linked so no two endpoints are far apart and the middle isn't a chokepoint. A
+torus is "the ring trick, in every dimension."
+</Callout>
+
+## Fat-tree vs torus — the cost/throughput call
+
+The shape most large GPU and datacenter clusters use is the **<Term id="fat-tree">fat-tree</Term>** (a
+Clos / spine-leaf): a switched tree engineered for **full, non-blocking bisection** — any node can talk to
+any node at line rate. The price is **more switches and links**. A **torus** is the other end: cheap
+(every node is just wired to its neighbors, no big switch tier) but **blocking** — its bisection is
+limited, so the biggest collectives can congest it. Same trade you already make choosing a non-blocking
+spine vs an oversubscribed one: **throughput vs cost.**
+
+## It's the all-reduce's speed limit
+
+Tie it back: the gradient **all-reduce** from the last lesson is a workload that hammers the *whole*
+network every step. So its time is governed by exactly these two metrics — diameter (how long the
+slowest leg takes) and bisection (whether the cross-network traffic congests). That's why, past raw
+bandwidth, **two levers** matter most:
+
+- **Cluster shape** — a well-connected topology (fat-tree, or a squarer/wrapped torus) finishes
+  collectives faster.
+- **Job placement** — packing a job onto a *compact, well-connected sub-graph* (rather than scattering it
+  across a sparse slice) keeps its diameter small and its links off the congested middle. The knob is
+  **topology-aware placement** in the scheduler — an affinity rule or placement group that keeps the job
+  on adjacent, well-connected nodes instead of wherever capacity happens to be free.
+
+## Why this matters
+
+- **You can read any fabric the same way.** Ring, torus, fat-tree, spine-leaf — all graphs; diameter and
+  bisection tell you the latency and throughput story without vendor specifics.
+- **Topology is a first-class capacity decision**, not an afterthought — it sets the ceiling on how well
+  your gradient sync (and thus your training throughput) scales.
+- **Placement is an operator lever.** "Why is this run slow?" can be "it got scattered across a
+  high-diameter slice," and the fix is packing it tighter — no new hardware.
+
+## Put it together
+
+<Steps>
+<Step title="Square it up">
+In the sim, start at `4×16` and reshape to `8×8` (same nodes). Report what happened to diameter and
+bisection, and say which collective behaviour each number predicts.
+</Step>
+<Step title="Wrap it">
+Turn wrap-around on. Explain, in network terms, why the diameter dropped — and what the second cut line
+means for bisection.
+</Step>
+<Step title="Pick a fabric">
+A team needs the biggest possible all-reduce throughput and has budget for switches. Fat-tree or torus?
+Justify it in diameter/bisection terms.
+</Step>
+</Steps>

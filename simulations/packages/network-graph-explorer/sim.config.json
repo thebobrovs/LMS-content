@@ -1,0 +1,9 @@
+{
+  "id": "network-graph-explorer",
+  "title": "Network graph explorer — diameter & bisection",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-topology", "hint": "Reshape the grid and toggle wrap-around. Flip wrap on and watch the diameter (worst-case hops, the amber path) roughly halve — a ring gives every node a second way around. Square up the grid (e.g. 4x16 → 8x8) and watch the bisection (the red cut, the links you'd sever to split it in half) rise. Same node count, faster network — that's why cluster shape and job placement set the speed limit on the all-reduce." }
+  ]
+}
