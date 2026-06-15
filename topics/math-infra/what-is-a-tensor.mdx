@@ -15,6 +15,8 @@ flashcards:
     back: Rank is the number of dimensions — how many indices you need to reach one value (also called ndim or order). Don't confuse it with the linear-algebra 'matrix rank' (number of independent rows); here rank just means how many axes the array has.
   - front: How does a geometric arrow become an array the computer stores?
     back: You read its shadow (projection) on each axis. The three shadow lengths are the components [x, y, z]. The chip stores those numbers, never the arrow — the unit vectors are just the agreed ruler that makes the list mean a direction.
+  - front: A digital image — what rank is it?
+    back: A grayscale photo is rank 2 — shape (height, width), a grid of brightness values. A color photo is rank 3 — shape (height, width, 3), adding a 'channels' dimension for R, G, B per pixel. A batch or video is rank 4. Images are the everyday tensor.
   - front: Why does adding one dimension blow up memory?
     back: Each dimension multiplies the element count, it doesn't add to it. At a model width of 4096 in bf16, a rank-2 tensor is 32 MiB but a rank-3 tensor is 128 GiB — past a whole chip's HBM. That multiplicative growth is why activation and KV-cache tensors devour memory.
 quiz:
@@ -104,6 +106,30 @@ dimensions it has, i.e. **how many indices you need to reach a single value**.
 **One naming trap.** "Rank" here means **number of dimensions** (you'll also see *ndim* or
 *order*). It is **not** the linear-algebra "rank of a matrix" (the count of independent rows). Same
 word, unrelated idea — when an ML tool says a tensor is "rank 3," it means three axes.
+</Callout>
+
+### A tensor you already know — a digital image
+
+Forget arrows for a second. A **digital image is a tensor**, and it shows you every rank at once:
+
+| what it is | shape | rank | each value is |
+| --- | --- | --- | --- |
+| one grayscale pixel | `()` | 0 · scalar | a brightness, `0` (black) → `255` (white) |
+| a row of pixels | `(width,)` | 1 · vector | one brightness each |
+| a grayscale photo | `(height, width)` | 2 · matrix | a grid of brightnesses |
+| a color photo | `(height, width, 3)` | 3 · 3-tensor | three numbers per pixel — **R, G, B** |
+| a batch / a video's frames | `(n, height, width, 3)` | 4 · 4-tensor | the same, stacked |
+
+A grayscale photo is *literally* a grid of brightness numbers — one per pixel. Now make it color: you
+don't get a new picture, you get a **third dimension** — a new axis called **channels**. The same grid,
+but **three values deep** — how much red, green, and blue sit at each pixel. That channels axis is
+exactly the jump from a matrix to a rank-3 tensor. Stack a batch of photos (or a video's frames) and you've added a fourth.
+
+<Callout type="tip">
+**Infra bridge.** That 4K screenshot you just `scp`'d is a rank-3 tensor — `3840 × 2160 × 3` bytes ≈
+**24 MB** uncompressed. The file size *is* the shape times the bytes-per-value. Going grayscale →
+color tripled it (one extra dimension, ×3); a batch multiplies again. It's the same arithmetic as the
+memory table below — and the same reason video and image models are so HBM-hungry.
 </Callout>
 
 Step through the ranks and watch the structure grow:

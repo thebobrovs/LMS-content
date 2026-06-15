@@ -99,13 +99,13 @@ function render() {
   const note = $("note");
   note.className = "note" + (over ? " over" : "");
   if (rank === 0)
-    note.innerHTML = `A <b>rank-0</b> tensor is a single number — a <b>scalar</b>. No indices needed; it's just <b>one</b> value, like a learning rate or a config constant.`;
+    note.innerHTML = `A <b>rank-0</b> tensor is a single number — a <b>scalar</b>. No indices needed; it's just <b>one</b> value, like a learning rate, or <b>one grayscale pixel's brightness</b>.`;
   else if (rank === 1)
-    note.innerHTML = `A <b>rank-1</b> tensor is a <b>vector</b> — one index, ${N} numbers in a row. Like a 1-D log of temperatures, or the <b>[x, y, z]</b> from the last sim.`;
+    note.innerHTML = `A <b>rank-1</b> tensor is a <b>vector</b> — one index, ${N} numbers in a row. Like a <b>row of pixels</b>, a 1-D sensor log, or the <b>[x, y, z]</b> from the last sim.`;
   else if (rank === 2)
-    note.innerHTML = `A <b>rank-2</b> tensor is a <b>matrix</b> — two indices, ${N}×${N} = <b>${cnt}</b> numbers. Like a routing table. At model scale it's already <b>32 MiB</b>.`;
+    note.innerHTML = `A <b>rank-2</b> tensor is a <b>matrix</b> — two indices, ${N}×${N} = <b>${cnt}</b> numbers. Like a <b>grayscale image</b> (a grid of brightness values), or a routing table. At model scale it's already <b>32 MiB</b>.`;
   else
-    note.innerHTML = `A <b>rank-3</b> tensor needs three indices — ${N}×${N}×${N} = <b>${cnt}</b> numbers in the toy, but <span class="hl over">128 GiB</span> at model scale. <b>One extra dimension</b> took the same data from 32 MiB to past a whole chip's HBM. <b>That</b> is why activations and KV-cache tensors — the chip's per-layer and per-token scratch memory — devour HBM, and why operators watch rank.`;
+    note.innerHTML = `A <b>rank-3</b> tensor needs three indices — like a <b>color image</b> (height × width × 3 RGB channels). ${N}×${N}×${N} = <b>${cnt}</b> numbers in the toy, but <span class="hl over">128 GiB</span> at model scale. <b>One extra dimension</b> took the same data past a whole chip's HBM — that's why color/video tensors, activations, and the KV-cache devour memory, and why operators watch rank.`;
 
   document.querySelectorAll(".rbtn").forEach((b) => b.addEventListener("click", () => {
     rank = +b.dataset.r;
