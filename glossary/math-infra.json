@@ -75,5 +75,38 @@
   },
   "convergence": {
     "definition": "When the loss stops dropping meaningfully — the run has reached (a good enough) minimum. The opposite of divergence, where too large a learning rate makes the loss explode to inf/NaN and the run is dead."
+  },
+  "neuron": {
+    "definition": "The smallest unit of a model — a weighted sum of its inputs plus a bias, squashed by an activation function into a single number. Stack billions of these into layers and you have a modern neural network; each one's weights are learned, not hand-set."
+  },
+  "weight": {
+    "definition": "A learned number that scales one input to a neuron — how strongly that neuron listens to that signal. The weights (plus biases) ARE the model: the thing training adjusts, the thing a checkpoint saves, and the thing that fills HBM (billions of them in an LLM)."
+  },
+  "bias": {
+    "definition": "A per-neuron offset added to its weighted sum before the activation — it shifts the threshold at which the neuron 'fires.' Learned alongside the weights; counted as part of the model's parameters."
+  },
+  "parameters": {
+    "definition": "All the learned numbers in a model — its weights and biases together. Parameter count (e.g. '70B') is the headline size: it sets the checkpoint size, the HBM the weights need, and (with optimizer state) the training footprint."
+  },
+  "activation function": {
+    "definition": "The nonlinear squash applied to a neuron's weighted sum (e.g. sigmoid, ReLU, GELU). Without it a stack of layers would collapse to one linear layer; the nonlinearity is what lets a network learn curved, complex rules."
+  },
+  "sigmoid": {
+    "definition": "An activation function that squashes any number to the 0–1 range (an S-curve). Handy for turning a raw score into a probability-like value; a decision threshold of 0.5 splits the two classes."
+  },
+  "classification": {
+    "definition": "A model task that sorts an input into categories (buy/walk, cat/dog) rather than predicting a number (that's regression). The output is read as 'which class,' often via a 0–1 score past a threshold."
+  },
+  "decision boundary": {
+    "definition": "The line (or surface) where a classifier flips from one class to the other — the rule it learned, drawn in input space. A single neuron can only draw a straight boundary; stacking neurons lets a network bend it into curves."
+  },
+  "neural network": {
+    "definition": "Many neurons wired in layers — inputs feed a hidden layer (or many), which feed an output. Stacking nonlinear neurons lets it learn complex, curved rules a single neuron can't. The whole thing is still just weights and biases trained by gradient descent."
+  },
+  "hidden layer": {
+    "definition": "A layer of neurons between the inputs and the output — not directly observed, hence 'hidden.' Its neurons learn intermediate features; depth (more hidden layers) is what makes a network 'deep.'"
+  },
+  "backpropagation": {
+    "definition": "How a network finds each weight's gradient: run the forward pass, then send the output error backward layer by layer, giving each neuron a share of the 'blame' scaled by how much it contributed. Operationally it's why training must keep the forward activations in memory — a big reason training's HBM footprint dwarfs inference's."
   }
 }

@@ -1,0 +1,178 @@
+---
+title: What a Neuron Learns — Weights, Networks, and Backprop
+summary: Gradient descent showed the training loop, but "the model" was still a black box. This opens it. The smallest real model is a single neuron — a weighted vote — and the model literally is its weights. Train one for real, see the rule it learns, then stack neurons into a network and watch backprop send the error backward to tune every weight. The payoff is operational — what a checkpoint saves, why training eats so much more HBM than inference, and why training and serving run on separate fleets. No calculus.
+tags: [math-infra, fundamentals, training]
+difficulty: intermediate
+estimatedMinutes: 14
+level: 200
+prerequisites: [math-infra/gradient-descent]
+relatedTo: [math-infra/what-is-a-tensor, math-infra/precision-and-memory, ml-systems/why-tpus]
+videos: []
+flashcards:
+  - front: What does a single neuron compute?
+    back: A weighted sum of its inputs plus a bias, squashed by an activation function (like sigmoid) into one number — a score. The weights say how strongly it listens to each input. Stack billions of these and you have a modern model.
+  - front: In one line — what IS "the model"?
+    back: Its weights and biases (its parameters). Nothing else. Training is just nudging those numbers; a checkpoint saves them; at scale they're the tensor that fills HBM. "A 70B model" means 70 billion of these numbers.
+  - front: What does training actually change, and what does a decision boundary show?
+    back: Training changes the weights (via gradient descent). What the model learned is its decision boundary — the line/surface in input space where it flips from one class to the other. A single neuron can only draw a straight boundary; a network bends it.
+  - front: What is backpropagation, in plain terms?
+    back: After the forward pass, the output's error is sent backward through the layers; each neuron gets a share of the blame scaled by how much it contributed, and every weight is nudged to reduce it. It needs the forward activations kept in memory — a big reason training's HBM footprint dwarfs inference's.
+  - front: Why do training and inference have such different costs?
+    back: Training is the slow loop — forward, backprop, update, repeated millions of times, holding activations and optimizer state in HBM. Inference is a single forward pass, no backprop, no stored gradients. You pay big once to train, then serve cheap — which is why training and serving run on separate fleets.
+quiz:
+  - question: An ML team says "the model is 70B." 70 billion what?
+    choices:
+      - Training examples
+      - Parameters — the learned weights and biases
+      - Layers in the network
+    answer: 1
+    explanation: Parameter count is the headline size — the number of learned weights and biases. It sets the checkpoint size and the HBM the weights need (and, with optimizer state, the training footprint).
+  - question: Why does training need far more HBM than inference of the same model?
+    choices:
+      - Training uses a larger dtype for the weights
+      - Backprop must keep the forward activations (and optimizer state) in memory; inference is one forward pass and discards them
+      - Inference compresses the model
+    answer: 1
+    explanation: To send the error backward, backprop needs the activations computed on the way forward, plus the optimizer's per-parameter state. Inference keeps none of that — just a forward pass — so its footprint is much smaller.
+  - question: A single neuron keeps misclassifying a dataset no straight line can split. The fix?
+    choices:
+      - Lower the learning rate
+      - Stack neurons into a network so the boundary can bend
+      - Add more training epochs
+    answer: 1
+    explanation: One neuron can only draw a straight decision boundary. A curved rule needs multiple neurons (a hidden layer) whose nonlinear activations combine into a bent boundary — that's what a network buys you.
+status: published
+---
+
+## The one-line summary
+
+Gradient descent gave you the *loop*, but "the model" was still a black box. Here's the whole of
+it: **a model is just a big pile of numbers — weights — and the smallest model is a single
+<Term id="neuron">neuron</Term>.** Training nudges those weights (real gradient descent); what they
+encode is a **rule**; and stacking neurons into a **<Term id="neural network">network</Term>**, tuned
+by **<Term id="backpropagation">backprop</Term>**, is how that rule gets complex. Once you see that
+the model *is its weights*, the operational facts fall out — what a checkpoint saves, why training is
+so much more memory-hungry than inference, and why the two run on different fleets.
+
+<Callout type="tip">
+**Infra bridge.** You already manage systems that score inputs with weighted rules — a weighted
+health-check that decides in/out of rotation, a risk score from several signals. A neuron is exactly
+that, with one twist: **the weights are learned, not hand-tuned.** Training is the process that sets
+them.
+</Callout>
+
+## A neuron is a weighted vote
+
+A neuron takes each input, multiplies it by a learned **<Term id="weight">weight</Term>** (how much
+it listens to that input), adds a **<Term id="bias">bias</Term>** (its baseline), and squashes the
+result with an **<Term id="activation function">activation function</Term>** — here a
+**<Term id="sigmoid">sigmoid</Term>**, which maps anything to a 0–1 score. Past 0.5 it says one class;
+below, the other. That's **<Term id="classification">classification</Term>**.
+
+Train one for real below — drag nothing, just hit **Auto Train** and watch gradient descent tune the
+two weights and the bias until the line cleanly separates "buy" from "walk," then predict a new car:
+
+<Simulation id="neuron-explorer" height={820} />
+
+The line it finds is the **<Term id="decision boundary">decision boundary</Term>** — the rule the
+neuron learned, drawn in input space. Nothing was hand-coded; the weights *became* the rule.
+
+## The weights ARE the model
+
+This is the part worth internalizing. The three numbers in that sim — `w₁`, `w₂`, `b` — are the
+entire model. Training changed nothing else. Scale the idea up and a real model is the same thing:
+millions to billions of weights, just a big <Term id="tensor">tensor</Term> of numbers (the
+**<Term id="parameters">parameters</Term>**).
+
+<Callout type="tip">
+**Infra bridge.** "The weights are the model" is the fact behind your whole operational picture:
+- a **checkpoint** is literally a dump of these numbers — that's what you save and restore;
+- the weights are the tensor that **fills HBM** — "a 70B model" means 70 billion of them (≈140 GB in
+  bf16 before you've stored a single activation);
+- "loading the model" = streaming those numbers onto the chips.
+The model isn't code plus data — it's *this array of learned numbers*.
+</Callout>
+
+## One neuron draws a straight line — that's its ceiling
+
+A single neuron can only ever carve a **straight** decision boundary. Give it data that no straight
+line can split and it will never get the loss to zero — it's not under-trained, it's *under-powered*.
+The fix isn't more epochs; it's more neurons. A straight line is what a purely *linear* rule gives
+you — and stacking linear rules just yields another straight line. The activation (the sigmoid
+squash) makes each neuron **nonlinear**, and *that's* what lets a stack of them combine into a bent,
+curved boundary. That stack is a **neural network**.
+
+## How a network learns — backpropagation
+
+Now the real thing: inputs feed a **<Term id="hidden layer">hidden layer</Term>** of neurons, which
+feeds the output. More weights, so a harder question — *when the guess is wrong, which weight gets the
+blame?* The answer is **backpropagation**. Run the forward pass, measure the error at the output, then
+send that error **backward**: each neuron gets a share of the blame — written **δ** ("delta"), its
+slice of the error — scaled by how much it contributed (its weight to the output). Every weight then
+takes the same downhill step from the last topic — **gradient descent, applied to each weight
+individually.**
+
+Walk it one stage at a time — forward, error, the blame (δ) flowing backward, the update — then train
+it and watch the loss fall:
+
+<Simulation id="backprop-explorer" height={760} />
+
+Notice the connection **thickness** tracks weight magnitude: training grows the paths that matter and
+starves the ones that don't. That's "what the weights mean," made visible.
+
+<Callout type="tip">
+**Infra bridge.** Backprop is the reason **training's memory footprint dwarfs inference's.** To send
+the error backward, the chip must *keep the forward activations* it computed on the way in — every
+layer's intermediate tensors stay resident until the backward pass uses them. Add the optimizer's
+per-parameter state — **Adam, the standard optimizer, keeps two extra numbers per weight (a running
+average of past gradients and their square), so the optimizer alone can cost ~16 bytes per
+parameter** — and a training step needs *several times* the HBM of just running the model. Inference
+keeps none of it — one forward pass, then discard. That gap is why an OOM-free serving config can
+still OOM the moment you try to train on it — and why a training job that **OOMs mid-run rather than
+at startup** points at activations first: their footprint grows with batch size and sequence length,
+not just model size.
+</Callout>
+
+## Train once, infer forever
+
+Two very different jobs share the same network:
+
+- **Training** — the slow loop (forward → backprop → update), millions of steps, holding activations
+  and optimizer state. Expensive, stateful, long-running. You do it once (or rarely).
+- **Inference** — a single forward pass on new input. Cheap, stateless, fast. You do it constantly.
+
+<Callout type="tip">
+**Infra bridge.** This asymmetry is why training and serving run on **separate fleets** sized
+differently: training clusters are big, checkpoint-heavy, and tolerant of long jobs; serving fleets
+are latency-tuned and replicated for throughput. You pay a huge one-time cost to set the weights, then
+serve cheap forever — and at scale the *serving* bill still dominates because you run inference so
+many more times, so a deployment's cost model should track training and serving spend separately.
+</Callout>
+
+## Why this matters
+
+- **"The model" is a pile of weights.** That's what a checkpoint is, what loads onto the chips, and
+  what the parameter count measures — so weights/HBM math (last lesson's [What Is a
+  Tensor?](/topics/math-infra/what-is-a-tensor)) is how you size it.
+- **Backprop explains the training memory bill.** Stored activations + optimizer state are *why*
+  training needs multiples of the model's own size in HBM — and why a config that serves fine can't
+  necessarily train.
+- **Train vs infer is a cost split, not a detail.** Different fleets, different sizing, different
+  failure modes — all because one job runs the loop and the other runs a single pass.
+
+## Put it together
+
+<Steps>
+<Step title="Train a neuron, name the rule">
+In the first sim, Auto-Train the neuron, then say in one sentence what its decision boundary means and
+which three numbers *are* the trained model.
+</Step>
+<Step title="Follow the blame">
+In the second sim, step to the backprop stage. Explain where the δ comes from and why a hidden neuron
+with a bigger weight to the output gets more of it.
+</Step>
+<Step title="Size the memory">
+State why training this same network needs several times the HBM that inference does — name the two
+things backprop and the optimizer force you to keep resident.
+</Step>
+</Steps>

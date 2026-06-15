@@ -1,0 +1,9 @@
+{
+  "id": "neuron-explorer",
+  "title": "Neuron explorer — train one neuron, then predict",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-convergence", "hint": "Hit Auto Train and watch real gradient descent nudge the weights (w1, w2, b) until the purple boundary line snaps into place separating buy from walk and the loss drops near zero. Those three numbers ARE the model — what a checkpoint saves and what fills HBM at scale. Then run inference on a new car: one cheap forward pass, no more learning." }
+  ]
+}

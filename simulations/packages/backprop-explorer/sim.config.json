@@ -1,0 +1,9 @@
+{
+  "id": "backprop-explorer",
+  "title": "Backprop explorer — how a network assigns blame",
+  "version": "1.0.0",
+  "props": {},
+  "checkpoints": [
+    { "id": "observe-backprop", "hint": "Hit Auto Train and watch real backpropagation: the output's error becomes a blame signal (delta) that flows BACKWARD along the orange paths, and each hidden neuron gets a share of the blame scaled by how strongly it fed the output. Every weight then nudges down its own gradient. Thicker lines = bigger weights = paths that matter more. Stacking neurons like this is what lets a network bend a curved boundary a single neuron never could." }
+  ]
+}
