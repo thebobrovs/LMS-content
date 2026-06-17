@@ -5,6 +5,10 @@ The learning content for **LMS** ([thebobrovs/LMS](https://github.com/thebobrovs
 out at build time (`scripts/fetch-content.mjs`) and renders it; nothing here is
 application code.
 
+**New here?** See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the content
+development cycle — author → validate → audit → review on staging → promote →
+deploy to prod.
+
 ## Layout
 
 ```
